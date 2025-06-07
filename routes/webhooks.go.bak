@@ -1,0 +1,460 @@
+package routes
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/launchstack/backend/db"
+	"github.com/launchstack/backend/models"
+	"github.com/sirupsen/logrus"
+)
+
+// ClerkWebhookRequest represents a webhook request from Clerk
+type ClerkWebhookRequest struct {
+	Type      string          `json:"type"`
+	Data      json.RawMessage `json:"data"`
+	UserID    string          `json:"user_id"`
+	CreatedAt int64           `json:"created_at"`
+}
+
+// ClerkUserData represents user data from Clerk
+type ClerkUserData struct {
+	ID        string `json:"id"`
+	Email     string `json:"email_address"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
+
+// ClerkWebhook handles webhook events from Clerk
+func ClerkWebhook(webhookSecret string, logger *logrus.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// In a production environment, you would verify the webhook signature
+		// using the webhook secret
+
+		// Read request body
+		body, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			logger.WithError(err).Error("Failed to read webhook body")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
+			return
+		}
+
+		// Restore the request body for binding
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+
+		// Parse webhook request
+		var webhook ClerkWebhookRequest
+		if err := c.ShouldBindJSON(&webhook); err != nil {
+			logger.WithError(err).Error("Failed to parse webhook")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid webhook payload"})
+			return
+		}
+
+		// Handle different event types
+		switch webhook.Type {
+		case "user.created":
+			handleUserCreated(c, webhook, logger)
+		case "user.updated":
+			handleUserUpdated(c, webhook, logger)
+		case "user.deleted":
+			handleUserDeleted(c, webhook, logger)
+		default:
+			// Acknowledge receipt of the webhook but take no action
+			logger.WithField("type", webhook.Type).Info("Received unhandled webhook type")
+			c.JSON(http.StatusOK, gin.H{"status": "acknowledged"})
+		}
+	}
+}
+
+// handleUserCreated handles the user.created event from Clerk
+func handleUserCreated(c *gin.Context, webhook ClerkWebhookRequest, logger *logrus.Logger) {
+	var userData ClerkUserData
+	if err := json.Unmarshal(webhook.Data, &userData); err != nil {
+		logger.WithError(err).Error("Failed to parse user data")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user data"})
+		return
+	}
+
+	// Create new user in database
+	user := models.User{
+		ClerkUserID: userData.ID,
+		Email:       userData.Email,
+		FirstName:   userData.FirstName,
+		LastName:    userData.LastName,
+		Plan:        models.PlanFree, // Start with free plan
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	// Save user to database
+	if err := db.DB.Create(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to create user")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		return
+	}
+
+	logger.WithField("user_id", user.ID).Info("Created new user")
+	c.JSON(http.StatusOK, gin.H{"status": "success", "user_id": user.ID})
+}
+
+// handleUserUpdated handles the user.updated event from Clerk
+func handleUserUpdated(c *gin.Context, webhook ClerkWebhookRequest, logger *logrus.Logger) {
+	var userData ClerkUserData
+	if err := json.Unmarshal(webhook.Data, &userData); err != nil {
+		logger.WithError(err).Error("Failed to parse user data")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user data"})
+		return
+	}
+
+	// Find user in database
+	var user models.User
+	if err := db.DB.Where("clerk_user_id = ?", userData.ID).First(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to find user")
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Update user data
+	user.Email = userData.Email
+	user.FirstName = userData.FirstName
+	user.LastName = userData.LastName
+	user.UpdatedAt = time.Now()
+
+	// Save changes to database
+	if err := db.DB.Save(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to update user")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+		return
+	}
+
+	logger.WithField("user_id", user.ID).Info("Updated user")
+	c.JSON(http.StatusOK, gin.H{"status": "success", "user_id": user.ID})
+}
+
+// handleUserDeleted handles the user.deleted event from Clerk
+func handleUserDeleted(c *gin.Context, webhook ClerkWebhookRequest, logger *logrus.Logger) {
+	// Extract user ID from the webhook
+	clerkUserID := webhook.UserID
+
+	// Find user in database
+	var user models.User
+	if err := db.DB.Where("clerk_user_id = ?", clerkUserID).First(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to find user for deletion")
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Delete the user
+	if err := db.DB.Delete(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to delete user")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
+		return
+	}
+
+	logger.WithField("user_id", user.ID).Info("Deleted user")
+	c.JSON(http.StatusOK, gin.H{"status": "success", "user_id": user.ID})
+}
+
+// StripeWebhook handles webhook events from Stripe
+func StripeWebhook(webhookSecret string, logger *logrus.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Read request body
+		body, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			logger.WithError(err).Error("Failed to read Stripe webhook body")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
+			return
+		}
+
+		// In a production environment, you would verify the webhook signature
+		// using the webhook secret and the Stripe-Signature header
+
+		// Parse the event type
+		var event map[string]interface{}
+		if err := json.Unmarshal(body, &event); err != nil {
+			logger.WithError(err).Error("Failed to parse Stripe event")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload"})
+			return
+		}
+
+		eventType, ok := event["type"].(string)
+		if !ok {
+			logger.Error("Missing event type in Stripe webhook")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Missing event type"})
+			return
+		}
+
+		// Handle different event types
+		switch eventType {
+		case "checkout.session.completed":
+			handleCheckoutSessionCompleted(c, event, logger)
+		case "invoice.paid":
+			handleInvoicePaid(c, event, logger)
+		case "customer.subscription.updated":
+			handleSubscriptionUpdated(c, event, logger)
+		case "customer.subscription.deleted":
+			handleSubscriptionDeleted(c, event, logger)
+		default:
+			// Acknowledge receipt of the webhook but take no action
+			logger.WithField("type", eventType).Info("Received unhandled Stripe event type")
+			c.JSON(http.StatusOK, gin.H{"status": "acknowledged"})
+		}
+	}
+}
+
+// handleCheckoutSessionCompleted handles the checkout.session.completed event from Stripe
+func handleCheckoutSessionCompleted(c *gin.Context, event map[string]interface{}, logger *logrus.Logger) {
+	// Extract data from the event
+	data, ok := event["data"].(map[string]interface{})
+	if !ok {
+		logger.Error("Missing data in Stripe event")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event format"})
+		return
+	}
+
+	object, ok := data["object"].(map[string]interface{})
+	if !ok {
+		logger.Error("Missing object in Stripe event data")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data format"})
+		return
+	}
+
+	// Get customer ID and metadata
+	customerID, _ := object["customer"].(string)
+	metadata, _ := object["metadata"].(map[string]interface{})
+
+	if customerID == "" || metadata == nil {
+		logger.Error("Missing customer ID or metadata in checkout session")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required data"})
+		return
+	}
+
+	// Extract user ID from metadata
+	userIDStr, ok := metadata["user_id"].(string)
+	if !ok {
+		logger.Error("Missing user_id in checkout session metadata")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing user_id in metadata"})
+		return
+	}
+
+	// Parse user ID
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		logger.WithError(err).Error("Invalid user ID format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Find user in database
+	var user models.User
+	if err := db.DB.Where("id = ?", userID).First(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to find user")
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Update user with Stripe customer ID
+	user.StripeCustomerID = customerID
+	if err := db.DB.Save(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to update user with Stripe customer ID")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+		return
+	}
+
+	logger.WithFields(logrus.Fields{
+		"user_id":     userID,
+		"customer_id": customerID,
+	}).Info("Updated user with Stripe customer ID")
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+// handleInvoicePaid handles the invoice.paid event from Stripe
+func handleInvoicePaid(c *gin.Context, event map[string]interface{}, logger *logrus.Logger) {
+	// Extract data from the event
+	data, ok := event["data"].(map[string]interface{})
+	if !ok {
+		logger.Error("Missing data in Stripe event")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event format"})
+		return
+	}
+
+	object, ok := data["object"].(map[string]interface{})
+	if !ok {
+		logger.Error("Missing object in Stripe event data")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data format"})
+		return
+	}
+
+	// Get invoice data
+	customerID, _ := object["customer"].(string)
+	amount, _ := object["amount_paid"].(float64)
+	invoiceURL, _ := object["hosted_invoice_url"].(string)
+	paymentIntentID, _ := object["payment_intent"].(string)
+
+	if customerID == "" {
+		logger.Error("Missing customer ID in invoice")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing customer ID"})
+		return
+	}
+
+	// Find user by Stripe customer ID
+	var user models.User
+	if err := db.DB.Where("stripe_customer_id = ?", customerID).First(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to find user by Stripe customer ID")
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Create payment record
+	payment := models.Payment{
+		UserID:          user.ID,
+		Amount:          int(amount),
+		Currency:        "usd",
+		Status:          models.PaymentStatusSucceeded,
+		StripePaymentID: paymentIntentID,
+		InvoiceURL:      invoiceURL,
+		Description:     fmt.Sprintf("Invoice payment for %s", user.Email),
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+	}
+
+	// Save payment to database
+	if err := db.DB.Create(&payment).Error; err != nil {
+		logger.WithError(err).Error("Failed to create payment record")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create payment record"})
+		return
+	}
+
+	logger.WithFields(logrus.Fields{
+		"user_id":    user.ID,
+		"payment_id": payment.ID,
+		"amount":     amount,
+	}).Info("Recorded payment")
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+// handleSubscriptionUpdated handles the customer.subscription.updated event from Stripe
+func handleSubscriptionUpdated(c *gin.Context, event map[string]interface{}, logger *logrus.Logger) {
+	// Extract data from the event
+	data, ok := event["data"].(map[string]interface{})
+	if !ok {
+		logger.Error("Missing data in Stripe event")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event format"})
+		return
+	}
+
+	object, ok := data["object"].(map[string]interface{})
+	if !ok {
+		logger.Error("Missing object in Stripe event data")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data format"})
+		return
+	}
+
+	// Get subscription data
+	customerID, _ := object["customer"].(string)
+	subscriptionID, _ := object["id"].(string)
+	status, _ := object["status"].(string)
+	currentPeriodEnd, _ := object["current_period_end"].(float64)
+
+	if customerID == "" || subscriptionID == "" {
+		logger.Error("Missing customer ID or subscription ID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required data"})
+		return
+	}
+
+	// Find user by Stripe customer ID
+	var user models.User
+	if err := db.DB.Where("stripe_customer_id = ?", customerID).First(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to find user by Stripe customer ID")
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Determine plan from metadata
+	// In a real implementation, you would extract the plan from the subscription items
+	// For now, we'll default to Pro
+	plan := models.PlanPro
+
+	// Update user subscription details
+	user.SubscriptionID = subscriptionID
+	user.SubscriptionStatus = status
+	user.Plan = plan
+	user.CurrentPeriodEnd = time.Unix(int64(currentPeriodEnd), 0)
+	user.UpdatedAt = time.Now()
+
+	// Save changes to database
+	if err := db.DB.Save(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to update user subscription")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user subscription"})
+		return
+	}
+
+	logger.WithFields(logrus.Fields{
+		"user_id":        user.ID,
+		"subscription_id": subscriptionID,
+		"status":         status,
+		"plan":           plan,
+	}).Info("Updated user subscription")
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+// handleSubscriptionDeleted handles the customer.subscription.deleted event from Stripe
+func handleSubscriptionDeleted(c *gin.Context, event map[string]interface{}, logger *logrus.Logger) {
+	// Extract data from the event
+	data, ok := event["data"].(map[string]interface{})
+	if !ok {
+		logger.Error("Missing data in Stripe event")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event format"})
+		return
+	}
+
+	object, ok := data["object"].(map[string]interface{})
+	if !ok {
+		logger.Error("Missing object in Stripe event data")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event data format"})
+		return
+	}
+
+	// Get subscription data
+	customerID, _ := object["customer"].(string)
+	subscriptionID, _ := object["id"].(string)
+
+	if customerID == "" || subscriptionID == "" {
+		logger.Error("Missing customer ID or subscription ID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required data"})
+		return
+	}
+
+	// Find user by Stripe customer ID
+	var user models.User
+	if err := db.DB.Where("stripe_customer_id = ?", customerID).First(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to find user by Stripe customer ID")
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Update user subscription details
+	user.SubscriptionID = ""
+	user.SubscriptionStatus = "canceled"
+	user.Plan = models.PlanFree // Downgrade to free plan
+	user.UpdatedAt = time.Now()
+
+	// Save changes to database
+	if err := db.DB.Save(&user).Error; err != nil {
+		logger.WithError(err).Error("Failed to update user after subscription deletion")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
+		return
+	}
+
+	logger.WithFields(logrus.Fields{
+		"user_id":        user.ID,
+		"subscription_id": subscriptionID,
+	}).Info("Subscription deleted, user downgraded to free plan")
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+} 

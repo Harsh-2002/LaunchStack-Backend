@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: launchstack-api
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - n8n-data:/opt/n8n/data
+    restart: unless-stopped
+    networks:
+      - launchstack-network
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    container_name: launchstack-redis
+    restart: unless-stopped
+    networks:
+      - launchstack-network
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+networks:
+  launchstack-network:
+    driver: bridge
+
+volumes:
+  n8n-data:
+    driver: local
+  redis-data:
+    driver: local 

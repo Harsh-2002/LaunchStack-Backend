@@ -1,0 +1,174 @@
+package routes
+
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/launchstack/backend/config"
+	"github.com/launchstack/backend/container"
+	"github.com/launchstack/backend/middleware"
+	"github.com/sirupsen/logrus"
+)
+
+// RegisterRoutes sets up all the API routes
+func RegisterRoutes(
+	router *gin.Engine,
+	cfg *config.Config,
+	containerManager *container.Manager,
+	logger *logrus.Logger,
+) {
+	// API group with versioning
+	api := router.Group("/api/v1")
+
+	// Public routes
+	public := api.Group("/")
+	{
+		public.GET("/health", HealthCheck(cfg))
+	}
+
+	// Protected routes requiring authentication
+	protected := api.Group("/")
+	protected.Use(middleware.AuthMiddleware(cfg.Clerk.SecretKey, logger, cfg))
+	{
+		// Instance management
+		instanceRoutes := protected.Group("/instances")
+		{
+			instanceRoutes.GET("/", GetInstances(containerManager))
+			instanceRoutes.POST("/", CreateInstance(containerManager))
+			instanceRoutes.GET("/:id", GetInstance(containerManager))
+			instanceRoutes.PUT("/:id", UpdateInstance(containerManager))
+			instanceRoutes.DELETE("/:id", DeleteInstance(containerManager))
+			instanceRoutes.POST("/:id/start", StartInstance(containerManager))
+			instanceRoutes.POST("/:id/stop", StopInstance(containerManager))
+			instanceRoutes.POST("/:id/restart", RestartInstance(containerManager))
+		}
+
+		// User management
+		userRoutes := protected.Group("/users")
+		{
+			userRoutes.GET("/me", GetCurrentUser())
+			userRoutes.PUT("/me", UpdateCurrentUser())
+		}
+
+		// Only register payment routes if payments are not disabled
+		if !cfg.PayPal.DisablePayments {
+			// Payment management
+			paymentRoutes := protected.Group("/payments")
+			{
+				paymentRoutes.GET("/", GetPayments)
+				paymentRoutes.POST("/checkout", CreateCheckoutSession)
+				paymentRoutes.GET("/subscriptions", GetSubscriptions)
+				paymentRoutes.POST("/subscriptions/:id/cancel", CancelSubscription)
+			}
+		}
+
+		// Usage statistics
+		usageRoutes := protected.Group("/usage")
+		{
+			usageRoutes.GET("/", GetUsageStats())
+			usageRoutes.GET("/:instanceId", GetInstanceUsage())
+		}
+	}
+
+	// Webhook routes (not requiring the same authentication)
+	webhooks := api.Group("/webhooks")
+	{
+		// Only register PayPal webhooks if payments are not disabled
+		if !cfg.PayPal.DisablePayments {
+			webhooks.POST("/paypal", PayPalWebhook)
+		}
+		
+		// Clerk webhook for user management
+		webhooks.POST("/clerk", ClerkWebhook(cfg.Clerk.WebhookSecret, logger))
+		
+		// n8n webhook for workflow and instance events
+		webhooks.POST("/n8n", N8nWebhook(cfg.N8n.WebhookSecret, logger))
+	}
+}
+
+// HealthCheck is a simple endpoint to verify the API is running
+func HealthCheck(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"status": "ok",
+	})
+}
+
+// Placeholder handler functions to be implemented in separate files
+func GetInstances(containerManager *container.Manager) gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func CreateInstance(containerManager *container.Manager) gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func GetInstance(containerManager *container.Manager) gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func UpdateInstance(containerManager *container.Manager) gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func DeleteInstance(containerManager *container.Manager) gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func StartInstance(containerManager *container.Manager) gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func StopInstance(containerManager *container.Manager) gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func RestartInstance(containerManager *container.Manager) gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func GetCurrentUser() gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func UpdateCurrentUser() gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func GetPayments(c *gin.Context) {}
+func CreateCheckoutSession(c *gin.Context) {}
+func GetSubscriptions(c *gin.Context) {}
+func CancelSubscription(c *gin.Context) {}
+func GetUsageStats() gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func GetInstanceUsage() gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+func PayPalWebhook(c *gin.Context) {}
+
+// ClerkWebhook handler for Clerk user management
+func ClerkWebhook(secret string, logger *logrus.Logger) gin.HandlerFunc {
+	// Use our custom implementation
+	return WebhookHandler(&config.Config{
+		Clerk: struct {
+			SecretKey      string
+			WebhookSecret  string
+			PublishableKey string
+		}{
+			WebhookSecret: secret,
+		},
+	}, logger)
+}
+
+// N8nWebhook handles n8n workflow events
+func N8nWebhook(secret string, logger *logrus.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {}
+}
+
+// Functions defined in other files but referenced here
+var (
+	// PayPalWebhook is defined in paypal.go
+	PayPalWebhook func(*gin.Context)
+	
+	// Payment handlers are defined in paypal.go
+	GetPayments func(*gin.Context)
+	CreateCheckoutSession func(*gin.Context)
+	GetSubscriptions func(*gin.Context)
+	CancelSubscription func(*gin.Context)
+	
+	// User handlers are defined in users.go
+	GetCurrentUser func() gin.HandlerFunc
+	UpdateCurrentUser func() gin.HandlerFunc
+	
+	// Usage handlers are defined in usage.go
+	GetUsageStats func() gin.HandlerFunc
+	GetInstanceUsage func() gin.HandlerFunc
+) 
