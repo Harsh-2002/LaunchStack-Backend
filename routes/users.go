@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/launchstack/backend/db"
 	"github.com/launchstack/backend/middleware"
+	"github.com/launchstack/backend/models"
 )
 
 // UserUpdateRequest represents the request to update a user
@@ -150,4 +151,42 @@ func GetInstanceUsage() gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, usageStats)
 	}
+}
+
+// GetCurrentUserHandler returns the current user
+func GetCurrentUserHandler(c *gin.Context) {
+	// Get user from context
+	userVal, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found in context"})
+		return
+	}
+	
+	user, ok := userVal.(models.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user in context"})
+		return
+	}
+	
+	// Return user data
+	c.JSON(http.StatusOK, user)
+}
+
+// UpdateCurrentUserHandler updates the current user
+func UpdateCurrentUserHandler(c *gin.Context) {
+	// Get user from context
+	userVal, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found in context"})
+		return
+	}
+	
+	user, ok := userVal.(models.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user in context"})
+		return
+	}
+	
+	// For now, just return the user without updates
+	c.JSON(http.StatusOK, user)
 } 

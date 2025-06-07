@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/docker/docker v20.10.24+incompatible
-	github.com/docker/go-connections v0.4.0
+	github.com/docker/go-connections v0.5.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.4.0
 	github.com/joho/godotenv v1.5.1

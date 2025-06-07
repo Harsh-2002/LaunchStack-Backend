@@ -26,27 +26,28 @@ const (
 	StatusDeleted InstanceStatus = "deleted"
 )
 
-// Instance represents an n8n instance
+// Instance represents a user's n8n instance
 type Instance struct {
-	ID              uuid.UUID      `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	UserID          uuid.UUID      `gorm:"type:uuid;index" json:"user_id"`
-	Name            string         `json:"name"`
-	Description     string         `json:"description"`
-	ContainerID     string         `json:"container_id,omitempty"`
-	Status          InstanceStatus `gorm:"type:varchar(20);default:'pending'" json:"status"`
-	Host            string         `json:"host,omitempty"`
-	Port            int            `json:"port"`
-	URL             string         `json:"url"`
-	CPULimit        float64        `json:"cpu_limit"`
-	MemoryLimit     int            `json:"memory_limit"` // In MB
-	StorageLimit    int            `json:"storage_limit"` // In GB
-	CreatedAt       time.Time      `json:"created_at"`
-	UpdatedAt       time.Time      `json:"updated_at"`
-	DeletedAt       gorm.DeletedAt `gorm:"index" json:"-"`
+	ID            uuid.UUID       `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
+	UserID        uuid.UUID       `gorm:"type:uuid" json:"user_id"`
+	Name          string          `gorm:"size:255;not null" json:"name"`
+	Description   string          `gorm:"size:1000" json:"description"`
+	Status        InstanceStatus  `gorm:"size:50;not null" json:"status"`
+	Host          string          `gorm:"size:255" json:"host"`
+	Port          int             `json:"port"`
+	URL           string          `gorm:"size:255" json:"url"`
+	CPULimit      float64         `json:"cpu_limit"`
+	MemoryLimit   int             `json:"memory_limit"` // in MB
+	StorageLimit  int             `json:"storage_limit"` // in GB
+	ContainerID   string          `gorm:"size:255" json:"container_id"`
+	IPAddress     string          `gorm:"size:50" json:"ip_address"`
+	CreatedAt     time.Time       `json:"created_at"`
+	UpdatedAt     time.Time       `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt  `gorm:"index" json:"-"`
 	
 	// Relationships
-	User            User           `gorm:"foreignKey:UserID" json:"-"`
-	ResourceUsages  []ResourceUsage `gorm:"foreignKey:InstanceID" json:"resource_usages,omitempty"`
+	User          User            `gorm:"foreignKey:UserID" json:"-"`
+	ResourceUsage []ResourceUsage `gorm:"foreignKey:InstanceID" json:"resource_usage,omitempty"`
 }
 
 // TableName sets the table name for the Instance model

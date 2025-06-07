@@ -4,8 +4,16 @@
 LaunchStack is a PaaS solution providing self-hosted n8n workflow automation instances with Docker-based architecture. The platform supports multiple subscription tiers: Free, Basic, Pro, and Enterprise, each with different resource allocations.
 
 ## Base URL
+All API endpoints use the following base URL:
 ```
-https://api.launchstack.io/api/v1
+https://gw.srvr.site/api/v1
+```
+
+## Trailing Slashes
+All endpoints support both trailing and non-trailing slashes. For example, both of these are valid:
+```
+GET /api/v1/instances
+GET /api/v1/instances/
 ```
 
 ## Authentication
@@ -23,7 +31,7 @@ Authorization: Bearer <clerk_jwt_token>
 
 #### Check API Health
 ```
-GET /health
+GET /api/v1/health
 ```
 
 **Response (200 OK)**:
@@ -32,7 +40,22 @@ GET /health
   "status": "ok",
   "version": "0.1.0",
   "environment": "production",
-  "go_version": "go1.21.0"
+  "go_version": "go1.21.0",
+  "timestamp": "2025-06-07T19:26:11+05:30",
+  "database": {
+    "status": "ok"
+  },
+  "docker": {
+    "status": "ok"
+  },
+  "api": {
+    "endpoints": [
+      "/api/v1/instances",
+      "/api/v1/users/me",
+      "/api/v1/auth/webhook",
+      "/api/v1/health"
+    ]
+  }
 }
 ```
 
@@ -40,7 +63,7 @@ GET /health
 
 #### Get Current User
 ```
-GET /users/me
+GET /api/v1/users/me
 ```
 
 **Response (200 OK)**:
@@ -68,7 +91,7 @@ GET /users/me
 
 #### Update Current User
 ```
-PUT /users/me
+PUT /api/v1/users/me
 ```
 
 **Request Body**:
@@ -97,7 +120,7 @@ PUT /users/me
 
 #### List All Instances
 ```
-GET /instances
+GET /api/v1/instances
 ```
 
 **Response (200 OK)**:
@@ -132,7 +155,7 @@ GET /instances
 
 #### Create Instance
 ```
-POST /instances
+POST /api/v1/instances
 ```
 
 **Request Body**:
@@ -161,7 +184,7 @@ POST /instances
 
 #### Get Instance Details
 ```
-GET /instances/:id
+GET /api/v1/instances/:id
 ```
 
 **Response (200 OK)**:
@@ -180,38 +203,9 @@ GET /instances/:id
 }
 ```
 
-#### Update Instance
-```
-PUT /instances/:id
-```
-
-**Request Body**:
-```json
-{
-  "name": "New Workflow Name",
-  "description": "Updated description"
-}
-```
-
-**Response (200 OK)**:
-```json
-{
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "name": "New Workflow Name",
-  "description": "Updated description",
-  "status": "running",
-  "url": "prod-workflows-abc123.launchstack.io",
-  "cpu_limit": 2.0,
-  "memory_limit": 2048,
-  "storage_limit": 20,
-  "created_at": "2024-01-01T00:00:00Z",
-  "updated_at": "2024-04-20T01:00:00Z"
-}
-```
-
 #### Delete Instance
 ```
-DELETE /instances/:id
+DELETE /api/v1/instances/:id
 ```
 
 **Response (200 OK)**:
@@ -223,7 +217,7 @@ DELETE /instances/:id
 
 #### Start Instance
 ```
-POST /instances/:id/start
+POST /api/v1/instances/:id/start
 ```
 
 **Response (200 OK)**:
@@ -235,7 +229,7 @@ POST /instances/:id/start
 
 #### Stop Instance
 ```
-POST /instances/:id/stop
+POST /api/v1/instances/:id/stop
 ```
 
 **Response (200 OK)**:
@@ -247,7 +241,7 @@ POST /instances/:id/stop
 
 #### Restart Instance
 ```
-POST /instances/:id/restart
+POST /api/v1/instances/:id/restart
 ```
 
 **Response (200 OK)**:
@@ -259,57 +253,28 @@ POST /instances/:id/restart
 
 ### Resource Usage
 
-#### Get Usage Statistics for All Instances
+#### Get Instance Resource Stats
 ```
-GET /usage
-```
-
-**Response (200 OK)**:
-```json
-{
-  "123e4567-e89b-12d3-a456-426614174000": {
-    "cpu": 0.2,
-    "memory": 256,
-    "storage": 1.2,
-    "status": "running"
-  },
-  "223e4567-e89b-12d3-a456-426614174000": {
-    "cpu": 0.0,
-    "memory": 0,
-    "storage": 0.8,
-    "status": "stopped"
-  }
-}
-```
-
-#### Get Instance Usage Details
-```
-GET /usage/:instanceId
+GET /api/v1/instances/:id/stats
 ```
 
 **Response (200 OK)**:
 ```json
 {
-  "cpu": {
-    "current": 0.2,
-    "limit": 2.0,
-    "unit": "cores"
-  },
-  "memory": {
-    "current": 128,
-    "limit": 2048,
-    "unit": "MB"
-  },
-  "storage": {
-    "current": 0.5,
-    "limit": 20,
-    "unit": "GB"
-  },
-  "network": {
-    "in": 10.5,
-    "out": 5.2,
-    "unit": "MB"
-  }
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "instance_id": "123e4567-e89b-12d3-a456-426614174000",
+  "timestamp": "2025-06-07T19:26:11+05:30",
+  "cpu_usage": 1.25,
+  "cpu_formatted": "1.3%",
+  "memory_usage": 268435456,
+  "memory_limit": 2147483648,
+  "memory_percentage": 12.5,
+  "memory_formatted": "256.0 MB / 2.0 GB (12.5%)",
+  "disk_usage": 52428800,
+  "disk_formatted": "50.0 MB",
+  "network_in": 1048576,
+  "network_out": 524288,
+  "network_formatted": "1.0 MB in / 512.0 KB out"
 }
 ```
 
@@ -317,7 +282,7 @@ GET /usage/:instanceId
 
 #### Get Payments History
 ```
-GET /payments
+GET /api/v1/payments
 ```
 
 **Response (200 OK)**:
@@ -346,7 +311,7 @@ GET /payments
 
 #### Create Checkout Session
 ```
-POST /payments/checkout
+POST /api/v1/payments/checkout
 ```
 
 **Request Body**:
@@ -368,7 +333,7 @@ POST /payments/checkout
 
 #### Get Subscriptions
 ```
-GET /payments/subscriptions
+GET /api/v1/payments/subscriptions
 ```
 
 **Response (200 OK)**:
@@ -384,7 +349,7 @@ GET /payments/subscriptions
 
 #### Cancel Subscription
 ```
-POST /payments/subscriptions/:id/cancel
+POST /api/v1/payments/subscriptions/:id/cancel
 ```
 
 **Response (200 OK)**:
@@ -399,7 +364,7 @@ POST /payments/subscriptions/:id/cancel
 
 #### Clerk Webhook (User Management)
 ```
-POST /webhooks/clerk
+POST /api/v1/auth/webhook
 ```
 
 Handles Clerk webhook events for user lifecycle management.
@@ -411,7 +376,7 @@ Handles Clerk webhook events for user lifecycle management.
 
 #### PayPal Webhook (Payment Processing)
 ```
-POST /webhooks/paypal
+POST /api/v1/webhooks/paypal
 ```
 
 Handles PayPal webhook events for payment processing.
@@ -421,6 +386,14 @@ Handles PayPal webhook events for payment processing.
 - `BILLING.SUBSCRIPTION.CREATED`
 - `BILLING.SUBSCRIPTION.UPDATED`
 - `BILLING.SUBSCRIPTION.CANCELLED`
+
+## CORS Support
+
+The API implements a permissive CORS policy that:
+- Allows requests from any origin
+- Supports credentials
+- Permits common HTTP methods (GET, POST, PUT, DELETE, OPTIONS)
+- Allows standard headers
 
 ## Error Responses
 

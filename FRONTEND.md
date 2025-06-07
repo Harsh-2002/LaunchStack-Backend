@@ -93,9 +93,23 @@ Create a `.env` file in the root directory with the following variables:
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
 CLERK_SECRET_KEY=your_clerk_secret_key_here
 
+# Backend API
+NEXT_PUBLIC_BACKEND_URL=http://localhost:9090
+
 # Form Handling
 NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/your_form_id
 ```
+
+### API Endpoints in Development Mode
+
+When working with the backend in development mode (`DISABLE_PAYMENTS=true`), the following mock API endpoints are available:
+
+- `GET /api/v1/payments` - Returns mock payment history
+- `GET /api/v1/payments/subscriptions` - Returns a mock active subscription
+- `POST /api/v1/payments/checkout` - Simulates payment checkout process
+- `POST /api/v1/payments/subscriptions/:id/cancel` - Simulates subscription cancellation
+
+These endpoints return mock data that allows you to develop and test the frontend payment flow without actual payment processing.
 
 ### Getting Clerk Keys
 

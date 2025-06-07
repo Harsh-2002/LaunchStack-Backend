@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/launchstack/backend/db/migrations"
 	"github.com/launchstack/backend/models"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
@@ -58,6 +59,10 @@ func RunMigrations() error {
 		if err := DB.Order("applied_at DESC").First(&lastMigration).Error; err == nil {
 			// If we've run migrations in the last 24 hours, skip
 			if time.Since(lastMigration.AppliedAt) < 24*time.Hour {
+				// Always run resource usage migration to ensure the column exists
+				if err := migrations.CreateResourceUsageTable(DB); err != nil {
+					return fmt.Errorf("failed to run resource usage migration: %w", err)
+				}
 				return nil
 			}
 		}
@@ -73,6 +78,11 @@ func RunMigrations() error {
 	
 	if err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+	
+	// Explicitly run resource usage migration to ensure the column exists
+	if err := migrations.CreateResourceUsageTable(DB); err != nil {
+		return fmt.Errorf("failed to run resource usage migration: %w", err)
 	}
 	
 	// Record that we ran migrations
@@ -101,6 +111,21 @@ func RunMigrationsWithLogger(logger *logrus.Logger) error {
 			timeSince := time.Since(lastMigration.AppliedAt)
 			if timeSince < 24*time.Hour {
 				logger.Infof("Skipping migrations - last run %s ago", timeSince.Round(time.Second))
+				
+				// Always run our custom migrations
+				logger.Info("Running custom migrations...")
+				// Ensure resource_usages table has memory_limit column
+				if err := migrations.CreateResourceUsageTable(DB); err != nil {
+					logger.Warnf("Failed to run resource usage migration: %v", err)
+				} else {
+					logger.Info("Resource usage migration completed successfully")
+				}
+				
+				if err := RunIPAddressMigration(); err != nil {
+					logger.Warnf("Failed to run IP address migration: %v", err)
+				} else {
+					logger.Info("IP address migration completed successfully")
+				}
 				return nil
 			}
 			logger.Infof("Running migrations - last run %s ago", timeSince.Round(time.Second))
@@ -110,7 +135,20 @@ func RunMigrationsWithLogger(logger *logrus.Logger) error {
 	}
 	
 	// Run the migrations
-	return RunMigrations()
+	err := RunMigrations()
+	if err != nil {
+		return err
+	}
+	
+	// Run our custom migrations
+	logger.Info("Running custom migrations...")
+	if err := RunIPAddressMigration(); err != nil {
+		logger.Warnf("Failed to run IP address migration: %v", err)
+	} else {
+		logger.Info("IP address migration completed successfully")
+	}
+	
+	return nil
 }
 
 // Close closes the database connection

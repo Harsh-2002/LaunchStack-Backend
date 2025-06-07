@@ -1,0 +1,131 @@
+time="2025-06-07T14:30:57+05:30" level=info msg="Setting log level to DEBUG for detailed request logging"
+time="2025-06-07T14:30:57+05:30" level=info msg="Connecting to database (attempt 1/5)..."
+time="2025-06-07T14:30:58+05:30" level=info msg="Successfully connected to database"
+time="2025-06-07T14:30:58+05:30" level=info msg="Checking if migrations need to be run..."
+time="2025-06-07T14:30:58+05:30" level=info msg="Skipping migrations - last run 12m35s ago"
+time="2025-06-07T14:30:58+05:30" level=info msg="Running custom migrations..."
+time="2025-06-07T14:30:58+05:30" level=info msg="IP address migration completed successfully"
+time="2025-06-07T14:30:58+05:30" level=info msg="Verifying database schema..."
+time="2025-06-07T14:30:58+05:30" level=info msg="Users table verified"
+time="2025-06-07T14:30:58+05:30" level=info msg="DisablePayments: true, Environment: development"
+time="2025-06-07T14:30:58+05:30" level=info msg="Development mode detected, creating development user..."
+time="2025-06-07T14:30:58+05:30" level=info msg="Created default logger for db package"
+time="2025-06-07T14:30:58+05:30" level=info msg="Creating development user if needed"
+time="2025-06-07T14:30:58+05:30" level=info msg="User already exists" user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:30:58+05:30" level=info msg="Development user created or verified successfully"
+time="2025-06-07T14:30:58+05:30" level=info msg="Database initialized successfully"
+time="2025-06-07T14:30:58+05:30" level=info msg="Initializing Docker client..."
+time="2025-06-07T14:30:58+05:30" level=info msg="Using Docker API endpoint: http://10.1.1.81:2375"
+time="2025-06-07T14:30:58+05:30" level=info msg="Connected to Docker API. Version: 28.2.2, API: 1.50"
+time="2025-06-07T14:30:58+05:30" level=info msg="Docker client initialized successfully"
+time="2025-06-07T14:30:58+05:30" level=info msg="Found 20 running containers"
+time="2025-06-07T14:30:58+05:30" level=info msg="CORS origins loaded from environment: [http://localhost:3000 https://launch-stack.srvr.site https://dev.srvr.site]"
+time="2025-06-07T14:30:58+05:30" level=info msg="Creating container manager..."
+time="2025-06-07T14:30:58+05:30" level=info msg="Initializing container manager in mock mode"
+time="2025-06-07T14:30:58+05:30" level=info msg="Container manager created successfully"
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+time="2025-06-07T14:30:58+05:30" level=info msg="Server configuration for middleware" disable_payments=true environment=development
+time="2025-06-07T14:30:58+05:30" level=info msg="Registering all routes..."
+time="2025-06-07T14:30:58+05:30" level=info msg="Debug middleware configuration before registering routes" ClerkSecretKey=true ContainerManager=true DisablePayments=true Environment=development LogLevel=debug
+time="2025-06-07T14:30:58+05:30" level=info msg="Database connection initialized and ready"
+[GIN-debug] GET    /api/v1/health            --> github.com/launchstack/backend/routes.RegisterAllRoutes.HealthCheck.func1 (5 handlers)
+[GIN-debug] GET    /api/v1/instances         --> github.com/launchstack/backend/routes.RegisterAllRoutes.GetInstances.func3 (6 handlers)
+[GIN-debug] GET    /api/v1/instances/        --> github.com/launchstack/backend/routes.RegisterAllRoutes.GetInstances.func4 (6 handlers)
+[GIN-debug] POST   /api/v1/instances         --> github.com/launchstack/backend/routes.RegisterAllRoutes.CreateInstance.func5 (6 handlers)
+[GIN-debug] POST   /api/v1/instances/        --> github.com/launchstack/backend/routes.RegisterAllRoutes.CreateInstance.func6 (6 handlers)
+[GIN-debug] GET    /api/v1/instances/:id     --> github.com/launchstack/backend/routes.RegisterAllRoutes.GetInstance.func7 (6 handlers)
+[GIN-debug] PUT    /api/v1/instances/:id     --> github.com/launchstack/backend/routes.RegisterAllRoutes.UpdateInstance.func8 (6 handlers)
+[GIN-debug] DELETE /api/v1/instances/:id     --> github.com/launchstack/backend/routes.RegisterAllRoutes.DeleteInstance.func9 (6 handlers)
+[GIN-debug] POST   /api/v1/instances/:id/start --> github.com/launchstack/backend/routes.RegisterAllRoutes.StartInstance.func10 (6 handlers)
+[GIN-debug] POST   /api/v1/instances/:id/stop --> github.com/launchstack/backend/routes.RegisterAllRoutes.StopInstance.func11 (6 handlers)
+[GIN-debug] POST   /api/v1/instances/:id/restart --> github.com/launchstack/backend/routes.RegisterAllRoutes.RestartInstance.func12 (6 handlers)
+[GIN-debug] GET    /api/v1/users/me          --> github.com/launchstack/backend/routes.RegisterAllRoutes.GetCurrentUser.func13 (6 handlers)
+[GIN-debug] PUT    /api/v1/users/me          --> github.com/launchstack/backend/routes.RegisterAllRoutes.UpdateCurrentUser.func14 (6 handlers)
+[GIN-debug] GET    /api/v1/usage             --> github.com/launchstack/backend/routes.RegisterAllRoutes.GetUsageStats.func15 (6 handlers)
+[GIN-debug] GET    /api/v1/usage/            --> github.com/launchstack/backend/routes.RegisterAllRoutes.GetUsageStats.func16 (6 handlers)
+[GIN-debug] GET    /api/v1/usage/:instanceId --> github.com/launchstack/backend/routes.RegisterAllRoutes.GetInstanceUsage.func17 (6 handlers)
+time="2025-06-07T14:30:58+05:30" level=info msg="Registering Clerk webhook routes..."
+time="2025-06-07T14:30:58+05:30" level=info msg="Registering Clerk webhook routes"
+[GIN-debug] POST   /api/v1/webhooks/clerk    --> github.com/launchstack/backend/routes.RegisterClerkWebhookRoutes.WebhookHandler.func1 (5 handlers)
+time="2025-06-07T14:30:58+05:30" level=info msg="Clerk webhook routes registered successfully"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: GET /api/v1/usage"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: GET /api/v1/usage/"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: GET /api/v1/usage/:instanceId"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: GET /api/v1/users/me"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: GET /api/v1/instances"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: GET /api/v1/instances/"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: GET /api/v1/instances/:id"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: GET /api/v1/health"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: POST /api/v1/instances"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: POST /api/v1/instances/"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: POST /api/v1/instances/:id/start"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: POST /api/v1/instances/:id/stop"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: POST /api/v1/instances/:id/restart"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: POST /api/v1/webhooks/clerk"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: PUT /api/v1/instances/:id"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: PUT /api/v1/users/me"
+time="2025-06-07T14:30:58+05:30" level=info msg="Registered route: DELETE /api/v1/instances/:id"
+time="2025-06-07T14:30:58+05:30" level=info msg="Starting server on port :9090..."
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :9090
+time="2025-06-07T14:31:14+05:30" level=info msg="Received request with Origin: "
+time="2025-06-07T14:31:14+05:30" level=info msg="Allowed origins: [http://localhost:3000 https://launch-stack.srvr.site https://dev.srvr.site]"
+time="2025-06-07T14:31:14+05:30" level=warning msg="Origin not allowed, using fallback: http://localhost:3000"
+[GIN] 2025/06/07 - 14:31:14 | 200 |   62.736554ms |             ::1 | GET      "/api/v1/health"
+time="2025-06-07T14:31:18+05:30" level=info msg="Received request with Origin: "
+time="2025-06-07T14:31:18+05:30" level=info msg="Allowed origins: [http://localhost:3000 https://launch-stack.srvr.site https://dev.srvr.site]"
+time="2025-06-07T14:31:18+05:30" level=warning msg="Origin not allowed, using fallback: http://localhost:3000"
+time="2025-06-07T14:31:18+05:30" level=debug msg="Using development user authentication bypass" email=dev@launchstack.io method=POST path=/api/v1/instances/ user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:31:18+05:30" level=info msg="Received request to create a new instance"
+time="2025-06-07T14:31:18+05:30" level=info msg="Processing instance creation for user" plan=pro user_email=dev@launchstack.io user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:31:18+05:30" level=info msg="Using fixed development user ID" email=dev@launchstack.io fixed_user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:31:18+05:30" level=info msg="Received instance creation parameters" description=Test instance_name="Test Instance"
+time="2025-06-07T14:31:18+05:30" level=info msg="Counting instances for user" user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:31:18+05:30" level=info msg="Successfully counted instances from database" count=0 user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:31:18+05:30" level=info msg="Checking instance limits" current_count=0 limit=10
+time="2025-06-07T14:31:18+05:30" level=info msg="Calling container manager to create instance"
+time="2025-06-07T14:31:18+05:30" level=info msg="Creating new instance" instance_name="Test Instance" plan=pro user_email=dev@launchstack.io user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:31:18+05:30" level=info msg="User resource limits" cpu_limit=2 max_instances=10 memory_limit=2048 storage_limit=20
+time="2025-06-07T14:31:18+05:30" level=info msg="Generated instance identifiers" container_name=test-instance-f2814 instance_id=e2a7a10a-d818-4b0d-92b9-83e84aa5831a ip=0.0.0.10 subdomain=pearl-plum url="https://pearl-plum.srvr.site"
+time="2025-06-07T14:31:18+05:30" level=info msg="Docker command that would be executed" docker_cmd="docker run -d --name test-instance-f2814 --restart always --user root -e N8N_BASIC_AUTH_ACTIVE=true -e N8N_HOST=pearl-plum.srvr.site -e N8N_PROTOCOL=https -e NODE_ENV=production -e WEBHOOK_URL=https://pearl-plum.srvr.site/ -v /SSD/LaunchStack/N8N/test-instance-f2814/data:/home/node/.n8n -v /SSD/LaunchStack/N8N/test-instance-f2814/files:/files --label com.centurylinklabs.watchtower.enable=true --network n8n --ip 0.0.0.10 n8nio/n8n:latest"
+time="2025-06-07T14:31:18+05:30" level=info msg="MOCK: Would create data directories"
+time="2025-06-07T14:31:18+05:30" level=info msg="Would execute" cmd="mkdir -p /SSD/LaunchStack/N8N/test-instance-f2814/data /SSD/LaunchStack/N8N/test-instance-f2814/files"
+time="2025-06-07T14:31:18+05:30" level=info msg="MOCK: Would pull Docker image"
+time="2025-06-07T14:31:18+05:30" level=info msg="Would execute" cmd="docker pull n8nio/n8n:latest"
+time="2025-06-07T14:31:18+05:30" level=info msg="MOCK: Would create and start container"
+time="2025-06-07T14:31:18+05:30" level=info msg="Would execute" cmd="docker run -d --name test-instance-f2814 --restart always --user root -e N8N_BASIC_AUTH_ACTIVE=true -e N8N_HOST=pearl-plum.srvr.site -e N8N_PROTOCOL=https -e NODE_ENV=production -e WEBHOOK_URL=https://pearl-plum.srvr.site/ -v /SSD/LaunchStack/N8N/test-instance-f2814/data:/home/node/.n8n -v /SSD/LaunchStack/N8N/test-instance-f2814/files:/files --label com.centurylinklabs.watchtower.enable=true --network n8n --ip 0.0.0.10 n8nio/n8n:latest"
+time="2025-06-07T14:31:19+05:30" level=info msg="MOCK: Would configure reverse proxy (Caddy)"
+time="2025-06-07T14:31:19+05:30" level=info msg="Would execute" cmd="echo 'pearl-plum.srvr.site { reverse_proxy http://127.0.0.1:5678 }' >> /etc/caddy/Caddyfile"
+time="2025-06-07T14:31:19+05:30" level=info msg="MOCK: Would reload Caddy"
+time="2025-06-07T14:31:19+05:30" level=info msg="Would execute" cmd="systemctl reload caddy"
+time="2025-06-07T14:31:19+05:30" level=info msg="Instance created successfully" instance_id=e2a7a10a-d818-4b0d-92b9-83e84aa5831a ip=0.0.0.10 status=running url="https://pearl-plum.srvr.site"
+time="2025-06-07T14:31:19+05:30" level=info msg="Instance created successfully by container manager" instance_id=e2a7a10a-d818-4b0d-92b9-83e84aa5831a instance_name="Test Instance" status=running url="https://pearl-plum.srvr.site"
+time="2025-06-07T14:31:19+05:30" level=info msg="Saving instance to database"
+time="2025-06-07T14:31:19+05:30" level=info msg="Creating new instance in database" instance_id=e2a7a10a-d818-4b0d-92b9-83e84aa5831a name="Test Instance" user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+
+2025/06/07 14:31:19 [32m/root/dev/LaunchStack-Backend/db/instances.go:75 [33mSLOW SQL >= 200ms
+[0m[31;1m[232.379ms] [33m[rows:1][35m INSERT INTO "instances" ("user_id","name","description","status","host","port","url","cpu_limit","memory_limit","storage_limit","container_id","ip_address","created_at","updated_at","deleted_at","id") VALUES ('f2814e7b-75a0-44d4-b345-e5ef5a84aab3','Test Instance','Test','running','pearl-plum',5000,'https://pearl-plum.srvr.site',2,2048,20,'test-instance-f2814','0.0.0.10','2025-06-07 14:31:19.241','2025-06-07 14:31:19.241',NULL,'e2a7a10a-d818-4b0d-92b9-83e84aa5831a') RETURNING "id"[0m
+time="2025-06-07T14:31:19+05:30" level=info msg="Successfully created instance in database" instance_id=e2a7a10a-d818-4b0d-92b9-83e84aa5831a name="Test Instance" status=running user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:31:19+05:30" level=info msg="Instance saved to database" instance_id=e2a7a10a-d818-4b0d-92b9-83e84aa5831a
+time="2025-06-07T14:31:19+05:30" level=info msg="Instance creation completed successfully" instance_id=e2a7a10a-d818-4b0d-92b9-83e84aa5831a
+[GIN] 2025/06/07 - 14:31:19 | 201 |  854.125488ms |             ::1 | POST     "/api/v1/instances/"
+time="2025-06-07T14:31:32+05:30" level=info msg="Received request with Origin: "
+time="2025-06-07T14:31:32+05:30" level=info msg="Allowed origins: [http://localhost:3000 https://launch-stack.srvr.site https://dev.srvr.site]"
+time="2025-06-07T14:31:32+05:30" level=warning msg="Origin not allowed, using fallback: http://localhost:3000"
+time="2025-06-07T14:31:32+05:30" level=debug msg="Using development user authentication bypass" email=dev@launchstack.io method=GET path=/api/v1/instances/ user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:31:32+05:30" level=info msg="Received request to get all instances"
+time="2025-06-07T14:31:32+05:30" level=info msg="Processing get instances request for user" user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:31:32+05:30" level=info msg="Fetching instances from database"
+time="2025-06-07T14:31:32+05:30" level=info msg="Fetching instances for user" user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:31:32+05:30" level=info msg="Successfully fetched instances from database" count=1 user_id=f2814e7b-75a0-44d4-b345-e5ef5a84aab3
+time="2025-06-07T14:31:32+05:30" level=info msg="Successfully retrieved instances" instance_count=1
+time="2025-06-07T14:31:32+05:30" level=info msg="Preparing response"
+time="2025-06-07T14:31:32+05:30" level=debug msg="Added instance to response" instance_id=e2a7a10a-d818-4b0d-92b9-83e84aa5831a instance_name="Test Instance" status=running url="https://pearl-plum.srvr.site"
+time="2025-06-07T14:31:32+05:30" level=info msg="Returning instances to client" response_count=1
+[GIN] 2025/06/07 - 14:31:32 | 200 |  118.371884ms |             ::1 | GET      "/api/v1/instances/"

@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/launchstack/backend/config"
+	"github.com/launchstack/backend/container"
 	"github.com/launchstack/backend/db"
 	"github.com/launchstack/backend/middleware"
 	"github.com/launchstack/backend/models"
@@ -19,37 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// initDockerClient initializes the Docker client and returns it
-func initDockerClient(logger *logrus.Logger) (*client.Client, error) {
-	// Set Docker API endpoint
-	dockerHost := "http://10.1.1.81:2375"
-	os.Setenv("DOCKER_HOST", dockerHost)
-	logger.Infof("Using Docker API endpoint: %s", dockerHost)
-	
-	// Create Docker client
-	cli, err := client.NewClientWithOpts(
-		client.WithHost(dockerHost),
-		client.WithAPIVersionNegotiation(),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Docker client: %w", err)
-	}
-	
-	// Test connection
-	_, err = cli.Ping(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to Docker API: %w", err)
-	}
-	
-	// Get Docker version
-	version, err := cli.ServerVersion(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Docker version: %w", err)
-	}
-	
-	logger.Infof("Connected to Docker API. Version: %s, API: %s", version.Version, version.APIVersion)
-	return cli, nil
-}
+// Docker client initialization is now handled by container.NewDockerClient
 
 // getCORSOrigins gets the CORS origins directly from the environment variable
 func getCORSOrigins(logger *logrus.Logger) []string {
@@ -108,6 +78,22 @@ func initializeDatabase(cfg *config.Config, logger *logrus.Logger) error {
 		return fmt.Errorf("database schema verification failed: %w", err)
 	}
 	
+	// Debug log the configuration
+	logger.Infof("DisablePayments: %v, Environment: %s", cfg.PayPal.DisablePayments, cfg.Server.Environment)
+	
+	// If in development mode with payments disabled, create the development user
+	if cfg.PayPal.DisablePayments && cfg.Server.Environment == "development" {
+		logger.Info("Development mode detected, creating development user...")
+		if err = db.CreateDevUser(); err != nil {
+			logger.Warnf("Failed to create development user: %v", err)
+			// Don't return error, just warn and continue
+		} else {
+			logger.Info("Development user created or verified successfully")
+		}
+	} else {
+		logger.Info("Not creating development user - either payments are enabled or not in development mode")
+	}
+	
 	logger.Info("Database initialized successfully")
 	return nil
 }
@@ -152,6 +138,9 @@ func main() {
 		logger.Warnf("Invalid log level: %s, defaulting to info", cfg.Monitoring.LogLevel)
 		logLevel = logrus.InfoLevel
 	}
+	// Temporarily set to Debug level to see more detailed logs
+	logLevel = logrus.DebugLevel
+	logger.Infof("Setting log level to DEBUG for detailed request logging")
 	logger.SetLevel(logLevel)
 	
 	// Initialize database and run migrations
@@ -160,9 +149,9 @@ func main() {
 	}
 	
 	// Initialize Docker client
-	var dockerClient *client.Client
+	var dockerClient container.DockerClient
 	logger.Info("Initializing Docker client...")
-	dockerClient, err = initDockerClient(logger)
+	dockerClient, err = container.NewDockerClient(cfg.Docker.Host)
 	if err != nil {
 		logger.Warnf("Failed to initialize Docker client: %v", err)
 		logger.Info("Continuing without Docker support...")
@@ -181,16 +170,63 @@ func main() {
 	// Get CORS origins directly from environment
 	corsOrigins := getCORSOrigins(logger)
 	
+	// Create container manager based on the configuration
+	var containerManager container.Manager
+	if cfg.Docker.Host != "" {
+		// Create Docker client
+		dockerClient, err := container.NewDockerClient(cfg.Docker.Host)
+		if err != nil {
+			logger.WithError(err).Fatal("Failed to create Docker client")
+		}
+		
+		// Create Docker container manager
+		containerManager = container.NewManager(dockerClient, cfg, logger)
+	} else {
+		// Fall back to mock container manager
+		containerManager = container.NewMockManager(logger, cfg)
+	}
+	
+	// TODO: Re-enable stats collector once fixed
+	/*
+	// Create and start stats collector
+	statsCollector := container.NewStatsCollector(containerManager, logger, 60*time.Second)
+	statsCollector.Start()
+	
+	// Ensure proper shutdown
+	defer func() {
+		statsCollector.Stop()
+		logger.Info("Stats collector stopped")
+	}()
+	*/
+	
 	// Initialize router
 	router := gin.Default()
 	
 	// Add middleware
 	router.Use(middleware.LoggerMiddleware(logger))
 	router.Use(middleware.CORSMiddleware(corsOrigins))
+	router.Use(middleware.AuthMiddleware(cfg.Clerk.SecretKey, logger, cfg))
 	
-	// Register all routes
-	logger.Info("Registering all routes...")
-	routes.RegisterAllRoutes(router, cfg, nil, logger)
+	// Log configuration for debugging
+	logger.WithFields(logrus.Fields{
+		"environment":      cfg.Server.Environment,
+		"disable_payments": cfg.PayPal.DisablePayments,
+	}).Info("Server configuration for middleware")
+	
+	// Debug middleware configuration
+	logger.WithFields(logrus.Fields{
+		"ContextMiddleware": true,
+		"CORSMiddleware":    true,
+		"ContainerManager":  containerManager != nil,
+	}).Info("Debug middleware configuration before registering routes")
+	
+	routes.RegisterAllRoutes(router, cfg, containerManager, logger)
+	
+	// Register mock payment routes if in development mode with payments disabled
+	if cfg.PayPal.DisablePayments && cfg.Server.Environment == "development" {
+		logger.Info("Registering mock payment routes for development mode")
+		routes.RegisterMockPaymentRoutes(router, logger)
+	}
 	
 	// Log all registered routes
 	for _, routeInfo := range router.Routes() {

@@ -16,8 +16,8 @@ func AuthMiddleware(clerkSecretKey string, logger *logrus.Logger, cfg *config.Co
 	return func(c *gin.Context) {
 		// Skip authentication for development
 		if cfg.PayPal.DisablePayments && cfg.Server.Environment == "development" {
-			// Set development user ID in context
-			devUserID := uuid.New()
+			// Use a consistent development user ID
+			devUserID, _ := uuid.Parse("f2814e7b-75a0-44d4-b345-e5ef5a84aab3") // Fixed ID for development
 			c.Set("userID", devUserID)
 			
 			// Set a mock development user
@@ -31,7 +31,12 @@ func AuthMiddleware(clerkSecretKey string, logger *logrus.Logger, cfg *config.Co
 			}
 			c.Set("user", devUser)
 			
-			logger.Debug("Using development user authentication bypass")
+			logger.WithFields(logrus.Fields{
+				"user_id": devUserID.String(),
+				"email":   devUser.Email,
+				"path":    c.Request.URL.Path,
+				"method":  c.Request.Method,
+			}).Debug("Using development user authentication bypass")
 			c.Next()
 			return
 		}
@@ -57,46 +62,20 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 		
-		// Log the origin and allowed origins for debugging
+		// Log the origin for debugging
 		logger, exists := c.Get("logger")
 		if exists && logger != nil {
 			log := logger.(*logrus.Logger)
 			log.Infof("Received request with Origin: %s", origin)
-			log.Infof("Allowed origins: %v", allowedOrigins)
 		}
 		
-		// Set CORS headers
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		
-		// Check if origin is allowed
-		allowed := false
-		
-		// If we're in development mode, allow all origins
-		if gin.Mode() == gin.DebugMode && (origin != "") {
+		// Allow the specific requesting origin (most permissive valid approach)
+		if origin != "" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-			allowed = true
-			if exists && logger != nil {
-				log := logger.(*logrus.Logger)
-				log.Infof("Debug mode: Allowing origin: %s", origin)
-			}
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		} else {
-			// Otherwise check against our allowed origins list
-			for _, allowedOrigin := range allowedOrigins {
-				if origin == allowedOrigin {
-					allowed = true
-					c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-					break
-				}
-			}
-		}
-		
-		// If no match was found, use the first allowed origin as a fallback
-		if !allowed && len(allowedOrigins) > 0 {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigins[0])
-			if exists && logger != nil {
-				log := logger.(*logrus.Logger)
-				log.Warnf("Origin not allowed, using fallback: %s", allowedOrigins[0])
-			}
+			// Fallback when no origin is provided
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		}
 		
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")

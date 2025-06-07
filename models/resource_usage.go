@@ -1,23 +1,28 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-// ResourceUsage represents resource utilization for an n8n instance
+// ResourceUsage represents the resource usage of an instance
 type ResourceUsage struct {
-	ID           uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	InstanceID   uuid.UUID `gorm:"type:uuid;index" json:"instance_id"`
-	Timestamp    time.Time `json:"timestamp"`
-	CPUUsage     float64   `json:"cpu_usage"` // Percentage (0-100)
-	MemoryUsage  int64     `json:"memory_usage"` // In bytes
-	DiskUsage    int64     `json:"disk_usage"` // In bytes
-	NetworkIn    int64     `json:"network_in"` // In bytes
-	NetworkOut   int64     `json:"network_out"` // In bytes
-	CreatedAt    time.Time `json:"created_at"`
+	ID              uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	InstanceID      uuid.UUID      `json:"instance_id" gorm:"type:uuid;index"`
+	Timestamp       time.Time      `json:"timestamp"`
+	CPUUsage        float64        `json:"cpu_usage"`        // CPU usage percentage
+	MemoryUsage     int64          `json:"memory_usage"`     // Memory usage in bytes
+	MemoryLimit     int64          `json:"memory_limit"`     // Memory limit in bytes
+	MemoryPercentage float64       `json:"memory_percentage"` // Memory usage percentage
+	DiskUsage       int64          `json:"disk_usage"`       // Disk usage in bytes
+	NetworkIn       int64          `json:"network_in"`       // Network traffic in (bytes)
+	NetworkOut      int64          `json:"network_out"`      // Network traffic out (bytes)
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt `json:"-" gorm:"index"`
 	
 	// Relationships
 	Instance     Instance  `gorm:"foreignKey:InstanceID" json:"-"`
@@ -51,37 +56,49 @@ func (r *ResourceUsage) ToPublicResponse() map[string]interface{} {
 	}
 }
 
-// formatBytes converts bytes to a human-readable format (KB, MB, GB)
-func formatBytes(bytes int64) map[string]interface{} {
-	const (
-		KB = 1024
-		MB = KB * 1024
-		GB = MB * 1024
-	)
-	
-	var value float64
-	var unit string
-	
-	switch {
-	case bytes >= GB:
-		value = float64(bytes) / float64(GB)
-		unit = "GB"
-	case bytes >= MB:
-		value = float64(bytes) / float64(MB)
-		unit = "MB"
-	case bytes >= KB:
-		value = float64(bytes) / float64(KB)
-		unit = "KB"
-	default:
-		value = float64(bytes)
-		unit = "bytes"
-	}
-	
+// FormatStats returns formatted resource usage data
+func (r *ResourceUsage) FormatStats() map[string]interface{} {
 	return map[string]interface{}{
-		"value": value,
-		"unit":  unit,
-		"bytes": bytes,
+		"id":                r.ID,
+		"instance_id":       r.InstanceID,
+		"timestamp":         r.Timestamp,
+		"cpu_usage":         r.CPUUsage,
+		"cpu_formatted":     formatPercentage(r.CPUUsage),
+		"memory_usage":      r.MemoryUsage,
+		"memory_limit":      r.MemoryLimit,
+		"memory_percentage": r.MemoryPercentage,
+		"memory_formatted":  formatBytes(r.MemoryUsage) + " / " + formatBytes(r.MemoryLimit) + " (" + formatPercentage(r.MemoryPercentage) + ")",
+		"disk_usage":        r.DiskUsage,
+		"disk_formatted":    formatBytes(r.DiskUsage),
+		"network_in":        r.NetworkIn,
+		"network_out":       r.NetworkOut,
+		"network_formatted": formatBytes(r.NetworkIn) + " in / " + formatBytes(r.NetworkOut) + " out",
 	}
+}
+
+// Helper functions for formatting
+func formatPercentage(value float64) string {
+	if value < 0.01 {
+		return "0.00%"
+	}
+	if value < 10 {
+		return fmt.Sprintf("%.2f%%", value)
+	}
+	return fmt.Sprintf("%.1f%%", value)
+}
+
+// formatBytes formats bytes to a human-readable format
+func formatBytes(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
 // NewResourceUsage creates a new ResourceUsage record

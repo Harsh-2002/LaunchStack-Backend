@@ -98,17 +98,20 @@ func (u *User) GetPlanResourceLimits() map[string]interface{} {
 	return limits
 }
 
-// GetInstancesLimit returns the maximum number of instances based on subscription plan
+// GetInstancesLimit returns the maximum number of instances a user can create based on their plan
 func (u *User) GetInstancesLimit() int {
+	// For testing purposes
+	if u.Plan == "unlimited" {
+		return 100 // Allow many instances for testing
+	}
+
 	switch u.Plan {
-	case PlanFree:
+	case "free":
 		return 1
-	case PlanBasic:
+	case "pro":
 		return 3
-	case PlanPro:
+	case "business":
 		return 10
-	case PlanEnterprise:
-		return 25
 	default:
 		return 0
 	}

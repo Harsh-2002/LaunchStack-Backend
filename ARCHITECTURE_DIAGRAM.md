@@ -249,46 +249,36 @@ Frontend Request ──┐
 │                     │  │  │  │  │                              │
 │ 6. Docker Container ┼──┼──┼──┼──┼──┐                           │
 │                     │  │  │  │  │  │                           │
-│ 7. Network Setup ───┼──┼──┼──┼──┼──┼──┐                        │
-│                     │  │  │  │  │  │  │                        │
-│ 8. Health Check ────┼──┼──┼──┼──┼──┼──┼──┐                     │
-│                     │  │  │  │  │  │  │  │                     │
-│ 9. Response ────────┼──┼──┼──┼──┼──┼──┼──┼───► Frontend        │
-│                     ▼  ▼  ▼  ▼  ▼  ▼  ▼  ▼                     │
-│                  [ALL STEPS MUST SUCCEED]                      │
-└─────────────────────────────────────────────────────────────────┘
+│ 7. DNS Configuration┼──┼──┼──┼──┼──┼──┐                        │
+│    (AdGuard)        │  │  │  │  │  │  │                        │
+└─────────────────────┼──┼──┼──┼──┼──┼──┼────────────────────────┘
+                      │  │  │  │  │  │  │
+                      ▼  ▼  ▼  ▼  ▼  ▼  ▼
+                 Final Response to Frontend
 ```
 
-### 3. Real-time Monitoring Flow
+### 3. DNS Resolution Flow for Instance Access
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                    MONITORING & METRICS PIPELINE                    │
-│                                                                      │
-│  Frontend Polling (30s interval)                                   │
-│         │                                                            │
-│         ▼                                                            │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │
-│  │ GET /api/   │───▶│ Docker      │───▶│ Resource    │              │
-│  │ instances/  │    │ Stats API   │    │ Calculation │              │
-│  │ {id}/metrics│    │             │    │             │              │
-│  └─────────────┘    └─────────────┘    └─────────────┘              │
-│         ▲                                       │                   │
-│         │                                       ▼                   │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │
-│  │ JSON        │◀───│ Database    │◀───│ Store       │              │
-│  │ Response    │    │ Query       │    │ Metrics     │              │
-│  │             │    │             │    │             │              │
-│  └─────────────┘    └─────────────┘    └─────────────┘              │
-│                                                                      │
-│  Metrics Collected:                                                 │
-│  • CPU Usage (%)                                                    │
-│  • Memory Usage (MB)                                                │
-│  • Storage Usage (GB)                                               │
-│  • Network I/O (MB)                                                 │
-│  • Container Status                                                  │
-│  • Uptime                                                           │
-└──────────────────────────────────────────────────────────────────────┘
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│ 1. User     │───▶│ 2. DNS      │───▶│ 3. AdGuard  │───▶│ 4. Docker   │
+│ Accesses    │    │ Request for │    │ DNS Rewrites│    │ Container   │
+│ Subdomain   │    │ Subdomain   │    │ Two-Level   │    │ Service     │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+                                            │
+                                            ▼
+                                     ┌─────────────┐
+                                     │ 5. N8N      │
+                                     │ Workflow    │
+                                     │ Interface   │
+                                     └─────────────┘
 ```
+
+DNS Resolution Process:
+1. User browser requests `cute-fox.srvr.site`
+2. AdGuard DNS resolves `cute-fox.srvr.site` to `cute-fox.docker`
+3. AdGuard DNS resolves `cute-fox.docker` to Container IP (e.g., `10.1.2.15`)
+4. Traffic reaches the container's N8N service on port 5678
+5. User accesses their workflow interface
 
 ### 4. Payment & Subscription Flow
 ```
