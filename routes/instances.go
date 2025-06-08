@@ -559,10 +559,11 @@ func GetInstanceHistoricalStats() gin.HandlerFunc {
 			return
 		}
 		
-		// Parse time period from query parameters, default to 10 minutes
-		periodStr := c.DefaultQuery("period", "10m")
-		var period time.Duration
+		// Parse query parameters - match frontend expected format
+		periodStr := c.DefaultQuery("period", "1h")
 		
+		// Convert period string to duration
+		var period time.Duration
 		switch periodStr {
 		case "10m":
 			period = 10 * time.Minute
@@ -573,38 +574,39 @@ func GetInstanceHistoricalStats() gin.HandlerFunc {
 		case "24h":
 			period = 24 * time.Hour
 		default:
-			period = 10 * time.Minute
+			period = time.Hour
 		}
 		
-		// Get resource usage history from database
-		usages, err := db.GetResourceUsageByInstanceID(instanceID, 100) // Get last 100 records
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching resource usage history"})
+		// For all periods, use the detailed historical data
+		// but format it according to frontend expectations
+		metrics, fetchErr := db.GetResourceUsageHistorical(instanceID, period, "auto")
+		if fetchErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error fetching metrics: %v", fetchErr)})
 			return
 		}
 		
-		// Filter by time period
-		cutoff := time.Now().Add(-period)
-		filteredUsages := []map[string]interface{}{}
-		
-		for _, usage := range usages {
-			if usage.Timestamp.After(cutoff) {
-				filteredUsages = append(filteredUsages, map[string]interface{}{
-					"timestamp":       usage.Timestamp,
-					"cpu_usage":       usage.CPUUsage,
-					"memory_usage":    usage.MemoryUsage,
-					"memory_limit":    usage.MemoryLimit,
-					"memory_percentage": usage.MemoryPercentage,
-					"network_in":      usage.NetworkIn,
-					"network_out":     usage.NetworkOut,
-				})
+		// Convert to frontend expected format (plain array of data points)
+		dataPoints := make([]map[string]interface{}, 0, len(metrics))
+		for _, point := range metrics {
+			// Convert the time-bucketed data to match expected frontend format
+			dataPoint := map[string]interface{}{
+				"timestamp":         point["timestamp"],
+				"cpu_usage":         point["cpu_avg"],          // Use average CPU as cpu_usage
+				"memory_usage":      point["memory_avg"],       // Use average memory as memory_usage
+				"memory_limit":      instance.MemoryLimit,      // Use instance memory limit
+				"memory_percentage": point["memory_percentage"], // Use calculated percentage
+				"network_in":        point["network_in"],
+				"network_out":       point["network_out"],
 			}
+			dataPoints = append(dataPoints, dataPoint)
 		}
 		
-		c.JSON(http.StatusOK, gin.H{
-			"instance_id": instanceID,
-			"period":      periodStr,
-			"data_points": filteredUsages,
-		})
+		// Limit to 100 data points as expected by frontend
+		if len(dataPoints) > 100 {
+			dataPoints = dataPoints[:100]
+		}
+		
+		// Return just the data points array as expected by frontend
+		c.JSON(http.StatusOK, dataPoints)
 	}
 } 

@@ -95,6 +95,10 @@ func RegisterInstanceRoutes(router *gin.Engine, cfg *config.Config, containerMan
 		id := c.Param("id")
 		c.Redirect(301, "/api/v1/instances/"+id+"/stats")
 	})
+	oldInstanceRoutes.GET("/:id/stats/history", func(c *gin.Context) {
+		id := c.Param("id")
+		c.Redirect(301, "/api/v1/instances/"+id+"/stats/history")
+	})
 	
 	// Register v1 instance routes
 	v1InstanceRoutes := router.Group("/api/v1/instances")
@@ -118,4 +122,8 @@ func RegisterInstanceRoutes(router *gin.Engine, cfg *config.Config, containerMan
 	v1InstanceRoutes.POST("/:id/restart/", RestartInstance(containerManager))
 	v1InstanceRoutes.GET("/:id/stats", GetInstanceStats(containerManager))
 	v1InstanceRoutes.GET("/:id/stats/", GetInstanceStats(containerManager))
+	
+	// Add the historical stats endpoint with the path expected by frontend
+	v1InstanceRoutes.GET("/:id/stats/history", GetInstanceHistoricalStats())
+	v1InstanceRoutes.GET("/:id/stats/history/", GetInstanceHistoricalStats())
 } 
