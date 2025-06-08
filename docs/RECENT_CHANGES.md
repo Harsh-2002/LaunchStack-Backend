@@ -1,5 +1,12 @@
 # Recent Changes
 
+## TimescaleDB Migration
+- Migrated from PostgreSQL to TimescaleDB for optimized time-series data storage
+- Implemented hypertables for efficient storage of resource usage metrics
+- Added continuous aggregates for fast querying of historical data
+- Set up data retention and compression policies to manage storage growth
+- Optimized database queries for time-series data access patterns
+
 ## Resource Usage Monitoring Improvements
 - Updated CPU usage calculation to report percentage values (0-100%)
 - Implemented minimum reporting threshold of 0.01% for non-zero CPU usage

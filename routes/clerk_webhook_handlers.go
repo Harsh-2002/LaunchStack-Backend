@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/launchstack/backend/db"
@@ -154,6 +156,8 @@ func handleUserCreated(data json.RawMessage, logger *logrus.Logger) error {
 		ID:            uuid.New(),
 		ClerkUserID:   userData.ID,
 		Email:         primaryEmail,
+		Username:      generateUsername(primaryEmail, userData.FirstName, userData.LastName),
+		PasswordHash:  "OAUTH_USER_NO_PASSWORD_" + uuid.New().String(), // Placeholder for OAuth users
 		FirstName:     userData.FirstName,
 		LastName:      userData.LastName,
 		Plan:          models.PlanFree, // Default to free plan
@@ -162,8 +166,8 @@ func handleUserCreated(data json.RawMessage, logger *logrus.Logger) error {
 	}
 
 	// Log the data we're about to save
-	logger.Infof("Creating new user from Clerk: ID=%s, Email=%s, Name=%s %s", 
-		user.ClerkUserID, user.Email, user.FirstName, user.LastName)
+	logger.Infof("Creating new user from Clerk: ID=%s, Email=%s, Name=%s %s, Username=%s", 
+		user.ClerkUserID, user.Email, user.FirstName, user.LastName, user.Username)
 
 	// Save to database
 	if err := db.DB.Create(user).Error; err != nil {
@@ -220,6 +224,19 @@ func handleUserUpdated(data json.RawMessage, logger *logrus.Logger) error {
 	user.Email = primaryEmail
 	user.FirstName = userData.FirstName
 	user.LastName = userData.LastName
+	
+	// Ensure username is set
+	if user.Username == "" {
+		user.Username = generateUsername(primaryEmail, userData.FirstName, userData.LastName)
+		logger.Infof("Generated new username for existing user: %s", user.Username)
+	}
+	
+	// Ensure password hash is set for OAuth users
+	if user.PasswordHash == "" {
+		user.PasswordHash = "OAUTH_USER_NO_PASSWORD_" + uuid.New().String()
+		logger.Info("Set placeholder password hash for OAuth user")
+	}
+	
 	user.UpdatedAt = time.Now()
 
 	// Save changes to database
@@ -286,4 +303,50 @@ func handleUserDeleted(data json.RawMessage, logger *logrus.Logger) error {
 
 	logger.Infof("Successfully deleted user: ID=%s, Clerk ID=%s", user.ID, user.ClerkUserID)
 	return nil
+}
+
+// generateUsername creates a username from the user's first name or email
+func generateUsername(email, firstName, lastName string) string {
+	// First choice: use firstName if available
+	if firstName != "" {
+		// Clean the firstName to remove spaces and special characters
+		username := strings.ToLower(firstName)
+		username = strings.Map(func(r rune) rune {
+			if unicode.IsLetter(r) || unicode.IsDigit(r) {
+				return r
+			}
+			return -1  // drop the character
+		}, username)
+		
+		if username != "" {
+			return username
+		}
+	}
+	
+	// Second choice: use email if firstName failed
+	if email != "" {
+		parts := strings.Split(email, "@")
+		if len(parts) > 0 && parts[0] != "" {
+			return parts[0]
+		}
+	}
+	
+	// Third choice: use firstName+lastName
+	if lastName != "" {
+		username := strings.ToLower(firstName + lastName)
+		// Remove spaces and special characters
+		username = strings.Map(func(r rune) rune {
+			if unicode.IsLetter(r) || unicode.IsDigit(r) {
+				return r
+			}
+			return -1  // drop the character
+		}, username)
+		
+		if username != "" {
+			return username
+		}
+	}
+	
+	// Last resort: generate a random username
+	return "user_" + strings.ReplaceAll(uuid.New().String(), "-", "")[:8]
 } 

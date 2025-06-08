@@ -1,40 +1,26 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: launchstack-api
+  postgres:
+    image: timescale/timescaledb:latest-pg17
+    container_name: launchstack-postgres
+    environment:
+      POSTGRES_DB: launchstack
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # TimescaleDB tuning for time-series workloads
+      TIMESCALEDB_TUNE: "true"
+      TIMESCALEDB_TUNE_MAX_CONNS: "100"
+    networks:
+      macvlan:
+        ipv4_address: 10.1.1.82
+    restart: unless-stopped
+    volumes:
+      - /SSD/Postgres/LaunchStack:/var/lib/postgresql/data
+    command: postgres -c shared_preload_libraries=timescaledb
     ports:
-      - "8080:8080"
-    env_file:
-      - .env
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - n8n-data:/opt/n8n/data
-    restart: unless-stopped
-    networks:
-      - launchstack-network
-    depends_on:
-      - redis
-
-  redis:
-    image: redis:alpine
-    container_name: launchstack-redis
-    restart: unless-stopped
-    networks:
-      - launchstack-network
-    volumes:
-      - redis-data:/data
-    command: redis-server --appendonly yes
+      - "5432:5432"
 
 networks:
-  launchstack-network:
-    driver: bridge
-
-volumes:
-  n8n-data:
-    driver: local
-  redis-data:
-    driver: local 
+  macvlan:
+    external: true 

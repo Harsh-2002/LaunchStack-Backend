@@ -1,3 +1,106 @@
+# Environment Configuration
+
+This document outlines the environment variables used in the LaunchStack-Backend system, with a focus on the TimescaleDB database configuration.
+
+## TimescaleDB Configuration
+
+The system now uses TimescaleDB for efficient time-series data storage. The following environment variables are used for database configuration:
+
+```
+# Main database connection string
+DATABASE_URL=postgresql://postgres:password@localhost:5432/launchstack
+
+# Individual connection parameters
+DB_USER=postgres
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=launchstack
+```
+
+### Configuration Notes
+
+- `DATABASE_URL` is the complete connection string used by many parts of the application
+- The individual parameters (`DB_USER`, `DB_HOST`, etc.) are used by the updated database connection code
+- When deploying to production, ensure you use strong passwords and consider using SSL
+
+## Setting Up TimescaleDB
+
+1. Deploy the TimescaleDB container using the provided docker-compose file
+2. Run the setup script to initialize the database: `./setup_db.sh`
+3. Verify the environment variables are correctly set in `.env`
+
+## Complete Environment Variables
+
+A complete list of environment variables used by the system:
+
+### Database
+```
+DATABASE_URL=postgresql://postgres:password@localhost:5432/launchstack
+DB_USER=postgres
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=launchstack
+```
+
+### Server
+```
+PORT=8080
+APP_ENV=development
+DOMAIN=launchstack.io
+BACKEND_URL=http://localhost:8080
+FRONTEND_URL=http://localhost:3000
+JWT_SECRET=your_jwt_secret_here
+```
+
+### Docker
+```
+DOCKER_HOST=http://localhost:2375
+DOCKER_NETWORK=n8n
+DOCKER_NETWORK_SUBNET=10.1.2.0/24
+N8N_CONTAINER_PORT=5678
+N8N_BASE_IMAGE=n8nio/n8n:latest
+```
+
+### Monitoring
+```
+RESOURCE_MONITOR_INTERVAL=10s
+LOG_LEVEL=debug
+```
+
+### Authentication and Payment
+```
+CLERK_SECRET_KEY=your_clerk_secret_key
+CLERK_WEBHOOK_SECRET=your_clerk_webhook_secret
+DISABLE_PAYMENTS=false
+PAYPAL_API_KEY=your_paypal_api_key
+PAYPAL_SECRET=your_paypal_secret
+PAYPAL_MODE=sandbox
+```
+
+## Development vs. Production
+
+Different environment settings are recommended based on the deployment environment:
+
+### Development
+```
+APP_ENV=development
+LOG_LEVEL=debug
+```
+
+### Production
+```
+APP_ENV=production
+LOG_LEVEL=info
+```
+
+For production, consider setting up:
+1. SSL/TLS for database connections
+2. More restrictive network configurations
+3. Proper monitoring and alerting
+4. Database backup procedures
+
 # Environment Variable Setup
 
 ## Required Environment Variables

@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/launchstack/backend/config"
@@ -19,21 +19,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Docker client initialization is now handled by container.NewDockerClient
-
-// getCORSOrigins gets the CORS origins directly from the environment variable
+// getCORSOrigins gets the CORS origins from environment
 func getCORSOrigins(logger *logrus.Logger) []string {
-	corsOrigins := os.Getenv("CORS_ORIGINS")
-	if corsOrigins == "" {
-		// Default to localhost if not set
-		logger.Warn("CORS_ORIGINS environment variable not set, defaulting to localhost:3000")
-		return []string{"http://localhost:3000"}
-	}
+	// Get CORS origins from environment or use default
+	corsOriginEnv := os.Getenv("CORS_ORIGINS")
+	var origins []string
 	
-	// Split by comma and trim spaces
-	origins := strings.Split(corsOrigins, ",")
-	for i, origin := range origins {
-		origins[i] = strings.TrimSpace(origin)
+	if corsOriginEnv != "" {
+		origins = strings.Split(corsOriginEnv, ",")
+	} else {
+		// Default origins
+		origins = []string{
+			"http://localhost:3000",
+			"https://app.launchstack.io",
+		}
+		logger.Warn("CORS_ORIGINS environment variable not set, using default origins")
 	}
 	
 	logger.Infof("CORS origins loaded from environment: %v", origins)
@@ -41,48 +41,24 @@ func getCORSOrigins(logger *logrus.Logger) []string {
 }
 
 // initializeDatabase initializes the database connection and runs migrations
-func initializeDatabase(cfg *config.Config, logger *logrus.Logger) error {
-	// Initialize database connection with retries
-	maxRetries := 5
-	retryDelay := time.Second * 3
-	
-	var err error
-	for i := 0; i < maxRetries; i++ {
-		logger.Infof("Connecting to database (attempt %d/%d)...", i+1, maxRetries)
-		err = db.Initialize(cfg.Database.URL)
-		if err == nil {
-			logger.Info("Successfully connected to database")
-			break
-		}
-		
-		logger.Warnf("Failed to connect to database: %v", err)
-		if i < maxRetries-1 {
-			logger.Infof("Retrying in %v...", retryDelay)
-			time.Sleep(retryDelay)
-		}
-	}
-	
-	if err != nil {
-		return fmt.Errorf("failed to connect to database after %d attempts: %w", maxRetries, err)
+func initializeDatabase(logger *logrus.Logger) error {
+	// Initialize database connection
+	logger.Info("Connecting to database...")
+	if err := db.InitDB(); err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 	
 	// Run database migrations using the smart migration system
 	logger.Info("Checking if migrations need to be run...")
-	if err = db.RunMigrationsWithLogger(logger); err != nil {
+	if err := db.RunMigrationsWithLogger(logger); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 	
 	// Verify migrations by checking if tables exist
 	logger.Info("Verifying database schema...")
-	if err = verifyDatabaseSchema(logger); err != nil {
+	if err := verifyDatabaseSchema(logger); err != nil {
 		return fmt.Errorf("database schema verification failed: %w", err)
 	}
-	
-	// Debug log the configuration
-	logger.Infof("DisablePayments: %v, Environment: %s", cfg.PayPal.DisablePayments, cfg.Server.Environment)
-	
-	// Note: We're using real JWT authentication but still keeping payments disabled
-	logger.Info("JWT authentication enabled - development user bypass disabled")
 	
 	logger.Info("Database initialized successfully")
 	return nil
@@ -111,9 +87,8 @@ func main() {
 	})
 	
 	// Load environment variables
-	err := godotenv.Load()
-	if err != nil {
-		logger.Warning("Error loading .env file, using environment variables")
+	if err := godotenv.Load(); err != nil {
+		log.Println("Warning: .env file not found, using environment variables")
 	}
 	
 	// Initialize configuration
@@ -133,28 +108,9 @@ func main() {
 	logger.Infof("Setting log level to DEBUG for detailed request logging")
 	logger.SetLevel(logLevel)
 	
-	// Initialize database and run migrations
-	if err := initializeDatabase(cfg, logger); err != nil {
+	// Initialize database
+	if err := initializeDatabase(logger); err != nil {
 		logger.Fatalf("Database initialization failed: %v", err)
-	}
-	
-	// Initialize Docker client
-	var dockerClient container.DockerClient
-	logger.Info("Initializing Docker client...")
-	dockerClient, err = container.NewDockerClient(cfg.Docker.Host)
-	if err != nil {
-		logger.Warnf("Failed to initialize Docker client: %v", err)
-		logger.Info("Continuing without Docker support...")
-	} else {
-		logger.Info("Docker client initialized successfully")
-		
-		// List running containers
-		containers, err := dockerClient.ContainerList(context.Background(), types.ContainerListOptions{})
-		if err != nil {
-			logger.Warnf("Failed to list containers: %v", err)
-		} else {
-			logger.Infof("Found %d running containers", len(containers))
-		}
 	}
 	
 	// Get CORS origins directly from environment

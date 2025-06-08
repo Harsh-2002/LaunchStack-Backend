@@ -31,6 +31,8 @@ type User struct {
 	ID            uuid.UUID       `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
 	ClerkUserID   string          `gorm:"uniqueIndex" json:"clerk_user_id"`
 	Email         string          `gorm:"uniqueIndex" json:"email"`
+	Username      string          `gorm:"uniqueIndex" json:"username"`
+	PasswordHash  string          `json:"-"` // Store hashed password, never expose in JSON
 	FirstName     string          `json:"first_name"`
 	LastName      string          `json:"last_name"`
 	Plan          SubscriptionPlan `gorm:"type:varchar(20);default:'free'" json:"plan"`
