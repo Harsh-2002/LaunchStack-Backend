@@ -1,5 +1,18 @@
 # Recent Changes
 
+## Resource Usage Monitoring Improvements
+- Updated CPU usage calculation to report percentage values (0-100%)
+- Implemented minimum reporting threshold of 0.01% for non-zero CPU usage
+- Removed disk usage tracking as requested
+- Increased monitoring frequency to 10 seconds
+- Implemented parallel stats collection for better performance
+
+## Docker Integration Enhancements
+- Switched from host filesystem bind mounts to Docker volumes for better data persistence
+- Ensured all Docker operations use the API rather than CLI commands
+- Improved container resource usage tracking
+- Enhanced error handling for Docker operations
+
 ## Server Port Configuration
 - Updated server to use environment variable for port configuration
 - Default port: 8080

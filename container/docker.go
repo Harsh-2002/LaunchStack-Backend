@@ -537,6 +537,10 @@ func (m *DockerManager) GetInstanceStats(ctx context.Context, instanceID uuid.UU
 		// Ensure the value is in the range of 0-100%
 		if cpuUsage > 100.0 {
 			cpuUsage = 100.0
+		} else if cpuUsage < 0.01 && cpuUsage > 0 {
+			// Ensure very small but non-zero values don't get reported as 0
+			// 0.01% is the minimum value we'll report
+			cpuUsage = 0.01
 		}
 		
 		// Log CPU deltas for debugging
@@ -545,6 +549,7 @@ func (m *DockerManager) GetInstanceStats(ctx context.Context, instanceID uuid.UU
 			"system_delta": systemDelta,
 			"num_cpus": numCPUs,
 			"cpu_usage_percent": cpuUsage,
+			"container_id": instance.ContainerID,
 		}).Debug("CPU usage calculation details")
 	} else {
 		m.logger.Debug("Unable to calculate accurate CPU usage, values are zero or negative")

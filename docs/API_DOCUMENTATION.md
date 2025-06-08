@@ -289,6 +289,7 @@ GET /api/v1/instances/:id/stats
 
 Notes:
 - CPU usage is reported as a percentage value (0-100%) of total available CPU capacity
+- Very small but non-zero CPU usage will be reported as a minimum of 0.01%
 - Memory usage is reported in bytes with a formatted human-readable representation
 - Disk usage is no longer tracked and will always be 0
 - Network I/O is reported in bytes with a formatted human-readable representation

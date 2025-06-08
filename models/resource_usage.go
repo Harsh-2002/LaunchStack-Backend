@@ -79,7 +79,9 @@ func (r *ResourceUsage) FormatStats() map[string]interface{} {
 // Helper functions for formatting
 func formatPercentage(value float64) string {
 	if value < 0.01 {
-		return "0.00%"
+		// For very small values, show as 0.01% instead of 0.00%
+		// This ensures that non-zero CPU usage is always visible
+		return "0.01%"
 	}
 	if value < 10 {
 		return fmt.Sprintf("%.2f%%", value)
