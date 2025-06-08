@@ -45,6 +45,39 @@ See the `docs/` directory for detailed documentation:
 
 ## API Documentation
 
+### Health Endpoint
+
+#### GET /api/v1/health
+
+Returns the health status of the API with system metrics and response times.
+
+**Response**:
+```json
+{
+  "status": "ok",
+  "version": "1.0.0",
+  "environment": "production",
+  "timestamp": "2023-06-08T12:34:56Z",
+  "database": {
+    "status": "ok",
+    "response_time_ms": 5
+  },
+  "system": {
+    "memory_usage_mb": 24.5,
+    "cpu_cores": 4,
+    "go_routines": 12,
+    "uptime": "2h15m30s"
+  },
+  "response_time_ms": 8
+}
+```
+
+Key performance metrics:
+- Database response time (in milliseconds)
+- Memory usage (in MB)
+- Total response time (in milliseconds)
+- System uptime
+
 ### Instance Endpoints
 
 #### Get Current Instance Metrics

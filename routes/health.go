@@ -11,50 +11,63 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Current API version
+const ApiVersion = "1.0.0"
+
 // HealthResponse represents the health check response
 type HealthResponse struct {
 	Status      string    `json:"status"`
 	Version     string    `json:"version"`
 	Environment string    `json:"environment"`
-	GoVersion   string    `json:"go_version"`
 	Timestamp   time.Time `json:"timestamp"`
 	Database    struct {
-		Status  string `json:"status"`
-		Message string `json:"message,omitempty"`
+		Status       string        `json:"status"`
+		ResponseTime time.Duration `json:"response_time_ms"`
 	} `json:"database"`
-	Docker struct {
-		Status  string `json:"status"`
-		Message string `json:"message,omitempty"`
-	} `json:"docker"`
-	API struct {
-		Endpoints []string `json:"endpoints"`
-	} `json:"api"`
+	System struct {
+		MemoryUsage float64 `json:"memory_usage_mb"`
+		CPUCores    int     `json:"cpu_cores"`
+		GoRoutines  int     `json:"go_routines"`
+		Uptime      string  `json:"uptime"`
+	} `json:"system"`
+	ResponseTime time.Duration `json:"response_time_ms"`
 }
 
 // HealthCheck is a simple endpoint to verify the API is running
 func HealthCheck(cfg *config.Config) gin.HandlerFunc {
+	startTime := time.Now()
 	return func(c *gin.Context) {
+		// Calculate uptime
+		uptime := time.Since(startTime).Round(time.Second).String()
+		
 		response := HealthResponse{
 			Status:      "ok",
-			Version:     "0.1.0", // TODO: Get from build info
+			Version:     ApiVersion,
 			Environment: cfg.Server.Environment,
-			GoVersion:   runtime.Version(),
 			Timestamp:   time.Now(),
 		}
 
-		// Check database connection
+		// Check database connection with timing
+		dbStartTime := time.Now()
 		if err := db.DB.Exec("SELECT 1").Error; err != nil {
 			response.Database.Status = "error"
-			response.Database.Message = "Database connection failed"
 			response.Status = "degraded"
 		} else {
 			response.Database.Status = "ok"
 		}
+		response.Database.ResponseTime = time.Since(dbStartTime).Round(time.Millisecond)
 
-		// Check Docker connection
-		// We assume Docker is working if the service is running
-		// In a more complete implementation, you would perform a Docker API check here
-		response.Docker.Status = "ok"
+		// Get system metrics
+		var memStats runtime.MemStats
+		runtime.ReadMemStats(&memStats)
+		
+		response.System.MemoryUsage = float64(memStats.Alloc) / 1024 / 1024 // Convert to MB
+		response.System.CPUCores = runtime.NumCPU()
+		response.System.GoRoutines = runtime.NumGoroutine()
+		response.System.Uptime = uptime
+
+		// Calculate total response time
+		response.ResponseTime = time.Since(time.Now().Add(-time.Millisecond)).Round(time.Millisecond)
 
 		statusCode := http.StatusOK
 		if response.Status != "ok" {
@@ -67,47 +80,49 @@ func HealthCheck(cfg *config.Config) gin.HandlerFunc {
 
 // HealthCheckHandler handles health check requests with detailed information
 func HealthCheckHandler(cfg *config.Config, logger *logrus.Logger) gin.HandlerFunc {
+	startTime := time.Now()
 	return func(c *gin.Context) {
+		requestStartTime := time.Now()
+		
+		// Calculate uptime
+		uptime := time.Since(startTime).Round(time.Second).String()
+		
 		response := HealthResponse{
 			Status:      "ok",
-			Version:     "0.1.0", // TODO: Get from build info
+			Version:     ApiVersion,
 			Environment: cfg.Server.Environment,
-			GoVersion:   runtime.Version(),
 			Timestamp:   time.Now(),
 		}
 
-		// Check database connection
+		// Check database connection with timing
+		dbStartTime := time.Now()
 		if err := db.DB.Exec("SELECT 1").Error; err != nil {
 			response.Database.Status = "error"
-			response.Database.Message = "Database connection failed"
 			response.Status = "degraded"
 			logger.Errorf("Health check - database connection failed: %v", err)
 		} else {
 			response.Database.Status = "ok"
 		}
+		response.Database.ResponseTime = time.Since(dbStartTime).Round(time.Millisecond)
 
-		// Check Docker connection
-		// We assume Docker is working if the service is running
-		response.Docker.Status = "ok"
+		// Get system metrics
+		var memStats runtime.MemStats
+		runtime.ReadMemStats(&memStats)
 		
-		// List core API endpoints
-		response.API.Endpoints = []string{
-			"/api/instances",
-			"/api/v1/instances",
-			"/api/users/me",
-			"/api/v1/users/me",
-			"/api/auth/webhook",
-			"/api/v1/auth/webhook",
-			"/health",
-			"/api/v1/health",
-		}
+		response.System.MemoryUsage = float64(memStats.Alloc) / 1024 / 1024 // Convert to MB
+		response.System.CPUCores = runtime.NumCPU()
+		response.System.GoRoutines = runtime.NumGoroutine()
+		response.System.Uptime = uptime
+
+		// Calculate total response time
+		response.ResponseTime = time.Since(requestStartTime).Round(time.Millisecond)
 
 		statusCode := http.StatusOK
 		if response.Status != "ok" {
 			statusCode = http.StatusServiceUnavailable
 		}
 		
-		logger.Infof("Health check executed: status=%s", response.Status)
+		logger.Infof("Health check executed: status=%s, response_time=%s", response.Status, response.ResponseTime)
 		c.JSON(statusCode, response)
 	}
-} 
+}

@@ -39,16 +39,48 @@ Error responses follow this format:
 
 #### GET /health
 
-Returns the health status of the API.
+Returns the health status of the API with system metrics and response times.
 
 **Response**:
 ```json
 {
   "status": "ok",
   "version": "1.0.0",
-  "timestamp": "2023-06-08T12:34:56Z"
+  "environment": "production",
+  "timestamp": "2023-06-08T12:34:56Z",
+  "database": {
+    "status": "ok",
+    "response_time_ms": 5
+  },
+  "system": {
+    "memory_usage_mb": 24.5,
+    "cpu_cores": 4,
+    "go_routines": 12,
+    "uptime": "2h15m30s"
+  },
+  "response_time_ms": 8
 }
 ```
+
+**Status Values**:
+- `ok`: All systems operational
+- `degraded`: One or more systems have issues but the API is still functional
+- `error`: Critical failure
+
+**Response Fields**:
+- `status`: Overall health status
+- `version`: API version
+- `environment`: Current environment (production, staging, development)
+- `timestamp`: Current time when the health check was performed
+- `database`: Database connection status
+  - `status`: Connection status
+  - `response_time_ms`: Time taken to complete a database ping
+- `system`: System resource information
+  - `memory_usage_mb`: Current memory usage in MB
+  - `cpu_cores`: Number of CPU cores available
+  - `go_routines`: Current number of Go routines
+  - `uptime`: Service uptime
+- `response_time_ms`: Total time taken to process the health check request
 
 ### Users
 
