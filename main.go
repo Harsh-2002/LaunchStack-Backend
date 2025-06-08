@@ -176,18 +176,40 @@ func main() {
 		containerManager = container.NewMockManager(logger, cfg)
 	}
 	
-	// TODO: Re-enable stats collector once fixed
-	/*
-	// Create and start stats collector
-	statsCollector := container.NewStatsCollector(containerManager, logger, 60*time.Second)
-	statsCollector.Start()
-	
-	// Ensure proper shutdown
-	defer func() {
-		statsCollector.Stop()
-		logger.Info("Stats collector stopped")
+	// Start resource monitoring in a background goroutine
+	go func() {
+		logger.Infof("Starting resource usage monitoring every %v", cfg.Monitoring.Interval)
+		ticker := time.NewTicker(cfg.Monitoring.Interval)
+		defer ticker.Stop()
+		
+		for {
+			select {
+			case <-ticker.C:
+				// Get all active instances
+				var instances []models.Instance
+				if result := db.DB.Where("status != ?", models.StatusDeleted).Find(&instances); result.Error != nil {
+					logger.WithError(result.Error).Error("Failed to fetch instances for resource monitoring")
+					continue
+				}
+				
+				// Collect stats for each instance
+				for _, instance := range instances {
+					go func(inst models.Instance) {
+						ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+						defer cancel()
+						
+						_, err := containerManager.GetInstanceStats(ctx, inst.ID)
+						if err != nil {
+							logger.WithFields(logrus.Fields{
+								"instance_id": inst.ID,
+								"error":      err.Error(),
+							}).Warn("Failed to collect stats for instance")
+						}
+					}(instance)
+				}
+			}
+		}
 	}()
-	*/
 	
 	// Initialize router
 	router := gin.Default()

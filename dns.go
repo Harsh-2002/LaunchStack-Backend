@@ -7,15 +7,40 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
-const (
-	host     = "dns.srvr.site"
-	username = "Pi"
-	password = "9130458959"
-	protocol = "https"
+// These variables will be populated from environment variables
+var (
+	host     string
+	username string
+	password string
+	protocol string
 )
+
+// Initialize the DNS configuration from environment variables
+func init() {
+	host = getEnv("ADGUARD_HOST", "")
+	username = getEnv("ADGUARD_USERNAME", "")
+	password = getEnv("ADGUARD_PASSWORD", "")
+	protocol = getEnv("ADGUARD_PROTOCOL", "https")
+	
+	// Verify required environment variables
+	if host == "" || username == "" || password == "" {
+		fmt.Println("Error: ADGUARD_HOST, ADGUARD_USERNAME, and ADGUARD_PASSWORD environment variables must be set")
+		os.Exit(1)
+	}
+}
+
+// getEnv gets an environment variable or returns a default value
+func getEnv(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
+}
 
 type DNSRewrite struct {
 	Domain string `json:"domain"`
@@ -302,6 +327,6 @@ func main() {
 	} else {
 		fmt.Println("Warning: DNS record could not be deleted. Manual cleanup may be required.")
 		fmt.Printf("Please visit %s://%s and delete the record manually.\n", protocol, host)
-		}
 	}
+}
 

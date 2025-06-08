@@ -33,11 +33,19 @@ type DNSManager struct {
 
 // NewDNSManager creates a new DNS manager with credentials from environment variables
 func NewDNSManager(logger *logrus.Logger) *DNSManager {
+	host := getEnv("ADGUARD_HOST", "")
+	username := getEnv("ADGUARD_USERNAME", "")
+	password := getEnv("ADGUARD_PASSWORD", "")
+	
+	if host == "" || username == "" || password == "" {
+		logger.Error("ADGUARD_HOST, ADGUARD_USERNAME, and ADGUARD_PASSWORD environment variables must be set")
+	}
+	
 	return &DNSManager{
 		logger:   logger,
-		host:     getEnv("ADGUARD_HOST", "dns.srvr.site"),
-		username: getEnv("ADGUARD_USERNAME", "Pi"),
-		password: getEnv("ADGUARD_PASSWORD", "9130458959"),
+		host:     host,
+		username: username,
+		password: password,
 		protocol: getEnv("ADGUARD_PROTOCOL", "https"),
 		cliPath:  getEnv("DNS_CLI_PATH", "./dns-cli"),
 	}

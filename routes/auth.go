@@ -40,12 +40,8 @@ func ClerkWebhookHandler(cfg *config.Config, logger *logrus.Logger) gin.HandlerF
 		buf.Write(body)
 		
 		// Skip signature verification if webhook secret is not configured
-		// or if we're in development mode and request is from localhost
+		isLocalRequest := strings.Contains(c.ClientIP(), "127.0.0.1") || strings.Contains(c.ClientIP(), "::1")
 		skipVerification := cfg.Clerk.WebhookSecret == ""
-		
-		// Check if request is from local testing
-		clientIP := c.ClientIP()
-		isLocalRequest := clientIP == "127.0.0.1" || clientIP == "::1" || strings.HasPrefix(clientIP, "192.168.") || strings.HasPrefix(clientIP, "10.")
 		
 		// Get the forwarded IP if available
 		forwardedFor := c.GetHeader("X-Forwarded-For")
@@ -55,7 +51,7 @@ func ClerkWebhookHandler(cfg *config.Config, logger *logrus.Logger) gin.HandlerF
 		
 		// Check webhook signature using svix library
 		verified := false
-		if !skipVerification && cfg.Clerk.WebhookSecret != "whsec_replace_with_your_clerk_webhook_secret" {
+		if !skipVerification && cfg.Clerk.WebhookSecret != "" {
 			wh, err := svix.NewWebhook(cfg.Clerk.WebhookSecret)
 			if err != nil {
 				logger.Errorf("Error creating svix webhook verifier: %v", err)
@@ -70,10 +66,10 @@ func ClerkWebhookHandler(cfg *config.Config, logger *logrus.Logger) gin.HandlerF
 			}
 		}
 		
-		// Development mode bypass for testing
+		// For local development environments, allow bypassing verification
 		if !verified && cfg.Server.Environment == "development" && (isLocalRequest || skipVerification) {
-			logger.Warn("Development mode: Bypassing signature verification")
-			skipVerification = true
+			logger.Warn("Bypassing webhook signature verification for local development")
+			verified = true
 		}
 		
 		// In development mode, continue despite verification failure

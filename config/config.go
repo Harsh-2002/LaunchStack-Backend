@@ -110,7 +110,7 @@ func NewConfig() (*Config, error) {
 	// N8N configuration
 	config.N8N.BaseImage = getEnv("N8N_BASE_IMAGE", "n8nio/n8n:latest")
 	config.N8N.DataDir = getEnv("N8N_DATA_DIR", "/opt/n8n/data")
-	config.N8N.WebhookSecret = getEnv("N8N_WEBHOOK_SECRET", "")
+	config.N8N.WebhookSecret = getEnv("N8N_WEBHOOK_SECRET", "n8n_webhook_" + config.Server.JWTSecret[:8])
 	portStart, err := strconv.Atoi(getEnv("N8N_PORT_RANGE_START", "5000"))
 	if err != nil {
 		return nil, fmt.Errorf("invalid N8N_PORT_RANGE_START: %w", err)
@@ -124,8 +124,12 @@ func NewConfig() (*Config, error) {
 	config.N8N.PortRangeEnd = portEnd
 
 	// CORS configuration
-	corsOrigins := getEnv("CORS_ORIGINS", fmt.Sprintf("%s,%s", config.Server.FrontendURL, "http://localhost:3000"))
-	config.CORS.Origins = strings.Split(corsOrigins, ",")
+	corsOrigins := getEnv("CORS_ORIGINS", "*")
+	if corsOrigins == "*" {
+		config.CORS.Origins = []string{"*"}
+	} else {
+		config.CORS.Origins = strings.Split(corsOrigins, ",")
+	}
 
 	// Monitoring configuration
 	monitorInterval, err := time.ParseDuration(getEnv("RESOURCE_MONITOR_INTERVAL", "30s"))
