@@ -40,6 +40,7 @@ See the `docs/` directory for detailed documentation:
 - [Database Schema](docs/DATABASE_SCHEMA.md)
 - [DNS Management](docs/DNS_MANAGEMENT.md)
 - [Environment Setup](docs/ENV_SETUP.md)
+- [Improvement Checklist](docs/IMPROVEMENT_CHECKLIST.md)
 - [Resource Allocation](docs/RESOURCE_ALLOCATION.md)
 
 ## License
