@@ -295,6 +295,51 @@ Notes:
 - Network I/O is reported in bytes with a formatted human-readable representation
 - Resource usage metrics are collected every 10 seconds
 
+#### Get Instance Historical Resource Stats
+```
+GET /api/v1/instances/:id/stats/history
+```
+
+Query Parameters:
+- `period` - Time period to retrieve stats for. Possible values: `10m` (default), `1h`, `6h`, `24h`
+
+**Response (200 OK)**:
+```json
+{
+  "instance_id": "123e4567-e89b-12d3-a456-426614174000",
+  "period": "10m",
+  "data_points": [
+    {
+      "timestamp": "2025-06-07T19:26:11+05:30",
+      "cpu_usage": 15.75,
+      "memory_usage": 268435456,
+      "memory_limit": 2147483648,
+      "memory_percentage": 12.5,
+      "network_in": 1048576,
+      "network_out": 524288
+    },
+    {
+      "timestamp": "2025-06-07T19:26:01+05:30",
+      "cpu_usage": 14.32,
+      "memory_usage": 264241152,
+      "memory_limit": 2147483648,
+      "memory_percentage": 12.3,
+      "network_in": 1032192,
+      "network_out": 512000
+    }
+    // Additional data points...
+  ]
+}
+```
+
+Notes:
+- Data points are ordered from newest to oldest
+- Up to 100 data points may be returned
+- Only data points within the specified time period are included
+- CPU usage is reported as a percentage value (0-100%)
+- Memory usage is reported in bytes
+- Data is suitable for building time-series graphs in the UI
+
 ### Payment Management (When Enabled)
 
 #### Get Payments History
@@ -307,21 +352,14 @@ GET /api/v1/payments
 [
   {
     "id": "123e4567-e89b-12d3-a456-426614174000",
-    "amount": 29.00,
-    "currency": "usd",
-    "status": "succeeded",
-    "description": "Subscription payment",
-    "invoice_url": "https://invoice.paypal.com/i/xxx",
-    "created_at": "2024-01-01T00:00:00Z"
-  },
-  {
-    "id": "223e4567-e89b-12d3-a456-426614174000",
-    "amount": 29.00,
-    "currency": "usd",
-    "status": "succeeded",
-    "description": "Subscription payment",
-    "invoice_url": "https://invoice.paypal.com/i/yyy",
-    "created_at": "2024-02-01T00:00:00Z"
+    "user_id": "user_123",
+    "amount": 5.00,
+    "currency": "USD",
+    "status": "completed",
+    "payment_method": "paypal",
+    "description": "Pro Plan - Monthly",
+    "paypal_order_id": "PAYPAL-ORDER-123",
+    "created_at": "2025-06-01T12:00:00Z"
   }
 ]
 ```
@@ -334,17 +372,16 @@ POST /api/v1/payments/checkout
 **Request Body**:
 ```json
 {
-  "plan": "pro",
-  "success_url": "https://launchstack.io/dashboard?success=true",
-  "cancel_url": "https://launchstack.io/pricing?canceled=true"
+  "plan_id": "pro_monthly",
+  "return_url": "https://example.com/success",
+  "cancel_url": "https://example.com/cancel"
 }
 ```
 
 **Response (200 OK)**:
 ```json
 {
-  "checkout_url": "https://www.paypal.com/checkoutnow?token=xxx",
-  "order_id": "order_12345"
+  "checkout_url": "https://www.paypal.com/checkoutnow?token=EC-123456789"
 }
 ```
 
@@ -356,11 +393,12 @@ GET /api/v1/payments/subscriptions
 **Response (200 OK)**:
 ```json
 {
-  "id": "sub_xxxxx",
-  "plan": "pro",
-  "status": "active",
-  "current_period_end": "2024-05-01T00:00:00Z",
-  "cancel_at_period_end": false
+  "subscription_id": "I-12345678",
+  "plan_id": "pro_monthly",
+  "status": "ACTIVE",
+  "start_date": "2025-06-01T12:00:00Z",
+  "next_billing_date": "2025-07-01T12:00:00Z",
+  "instances_limit": 10
 }
 ```
 
@@ -372,8 +410,7 @@ POST /api/v1/payments/subscriptions/:id/cancel
 **Response (200 OK)**:
 ```json
 {
-  "status": "success",
-  "message": "Subscription will be canceled at the end of the current billing period"
+  "message": "Subscription canceled successfully"
 }
 ```
 
@@ -416,15 +453,12 @@ The API implements a permissive CORS policy that:
 
 All API endpoints return appropriate HTTP status codes:
 
-- `200 OK`: Request successful
-- `201 Created`: Resource created successfully
-- `400 Bad Request`: Invalid request parameters
-- `401 Unauthorized`: Missing or invalid authentication
-- `403 Forbidden`: Valid authentication but insufficient permissions
-- `404 Not Found`: Resource not found
-- `409 Conflict`: Resource conflict (e.g., name already exists)
-- `429 Too Many Requests`: Rate limit exceeded
-- `500 Internal Server Error`: Server error
+- `200 OK` - Request successful
+- `400 Bad Request` - Invalid request parameters
+- `401 Unauthorized` - Authentication required
+- `403 Forbidden` - Action not allowed
+- `404 Not Found` - Resource not found
+- `500 Internal Server Error` - Server error
 
 Error response body format:
 

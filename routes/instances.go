@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -521,5 +522,89 @@ func GetInstanceStats(containerManager container.Manager) gin.HandlerFunc {
 		
 		// Return the stats
 		c.JSON(http.StatusOK, stats.FormatStats())
+	}
+}
+
+// GetInstanceHistoricalStats returns historical resource usage for an instance
+func GetInstanceHistoricalStats() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get instance ID from path
+		instanceID, err := uuid.Parse(c.Param("id"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid instance ID"})
+			return
+		}
+		
+		// Get the user ID from context
+		userID, err := middleware.GetUserIDFromContext(c)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			return
+		}
+		
+		// Get the instance from database
+		instance, err := db.GetInstanceByID(instanceID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Instance not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching instance"})
+			return
+		}
+		
+		// Check if the instance belongs to the user
+		if instance.UserID != userID {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to access this instance"})
+			return
+		}
+		
+		// Parse time period from query parameters, default to 10 minutes
+		periodStr := c.DefaultQuery("period", "10m")
+		var period time.Duration
+		
+		switch periodStr {
+		case "10m":
+			period = 10 * time.Minute
+		case "1h":
+			period = time.Hour
+		case "6h":
+			period = 6 * time.Hour
+		case "24h":
+			period = 24 * time.Hour
+		default:
+			period = 10 * time.Minute
+		}
+		
+		// Get resource usage history from database
+		usages, err := db.GetResourceUsageByInstanceID(instanceID, 100) // Get last 100 records
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching resource usage history"})
+			return
+		}
+		
+		// Filter by time period
+		cutoff := time.Now().Add(-period)
+		filteredUsages := []map[string]interface{}{}
+		
+		for _, usage := range usages {
+			if usage.Timestamp.After(cutoff) {
+				filteredUsages = append(filteredUsages, map[string]interface{}{
+					"timestamp":       usage.Timestamp,
+					"cpu_usage":       usage.CPUUsage,
+					"memory_usage":    usage.MemoryUsage,
+					"memory_limit":    usage.MemoryLimit,
+					"memory_percentage": usage.MemoryPercentage,
+					"network_in":      usage.NetworkIn,
+					"network_out":     usage.NetworkOut,
+				})
+			}
+		}
+		
+		c.JSON(http.StatusOK, gin.H{
+			"instance_id": instanceID,
+			"period":      periodStr,
+			"data_points": filteredUsages,
+		})
 	}
 } 

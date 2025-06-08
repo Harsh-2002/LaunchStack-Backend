@@ -235,6 +235,21 @@ func main() {
 		"ContainerManager":  containerManager != nil,
 	}).Info("Debug middleware configuration before registering routes")
 	
+	// Set up instance routes
+	instanceRoutes := router.Group("/instances")
+	{
+		instanceRoutes.GET("", routes.GetInstances(containerManager))
+		instanceRoutes.POST("", routes.CreateInstance(containerManager))
+		instanceRoutes.GET("/:id", routes.GetInstance(containerManager))
+		instanceRoutes.PUT("/:id", routes.UpdateInstance(containerManager))
+		instanceRoutes.DELETE("/:id", routes.DeleteInstance(containerManager))
+		instanceRoutes.POST("/:id/start", routes.StartInstance(containerManager))
+		instanceRoutes.POST("/:id/stop", routes.StopInstance(containerManager))
+		instanceRoutes.POST("/:id/restart", routes.RestartInstance(containerManager))
+		instanceRoutes.GET("/:id/stats", routes.GetInstanceStats(containerManager))
+		instanceRoutes.GET("/:id/stats/history", routes.GetInstanceHistoricalStats())
+	}
+	
 	routes.RegisterAllRoutes(router, cfg, containerManager, logger)
 	
 	// Register Clerk webhook routes
