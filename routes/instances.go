@@ -80,32 +80,13 @@ func CreateInstance(containerManager container.Manager) gin.HandlerFunc {
 			return
 		}
 		
-		// Debug the user ID to see why it's changing
+		// Debug the user ID
 		logger.WithFields(logrus.Fields{
 			"user_id":    user.ID.String(),
 			"user_email": user.Email,
 			"plan":       user.Plan,
 		}).Info("Processing instance creation for user")
 		
-		// In development mode, use our fixed development user ID
-		// Always override with dev user ID in development
-		devUserID, _ := uuid.Parse("f2814e7b-75a0-44d4-b345-e5ef5a84aab3")
-		
-		// Create a new user object with the fixed ID but keeping other properties
-		user = models.User{
-			ID:          devUserID,
-			Email:       user.Email,
-			FirstName:   user.FirstName,
-			LastName:    user.LastName,
-			Plan:        user.Plan,
-			ClerkUserID: user.ClerkUserID,
-		}
-		
-		logger.WithFields(logrus.Fields{
-			"fixed_user_id": user.ID.String(),
-			"email":         user.Email,
-		}).Info("Using fixed development user ID")
-
 		// Parse request body
 		var req InstanceRequest
 		if err := c.ShouldBindJSON(&req); err != nil {

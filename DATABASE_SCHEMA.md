@@ -171,12 +171,12 @@ CREATE TABLE payments (
 
 The system supports two subscription tiers with different resource allocations:
 
-| Plan    | Pricing               | Max Instances | CPU/Instance | Memory/Instance | Storage/Instance |
-|---------|------------------------|---------------|--------------|-----------------|------------------|
-| Starter | $2/mo or $20/yr       | 2             | 1.0 cores    | 1024 MB         | 5 GB             |
-| Pro     | $5/mo or $50/yr       | 10            | 2.0 cores    | 2048 MB         | 20 GB            |
+| Plan    | Pricing            | Max Instances | CPU per Instance | Memory per Instance | Storage per Instance |
+|---------|-------------------|---------------|------------------|---------------------|---------------------|
+| Starter | $2/mo or $20/yr   | 1             | 0.5 CPU          | 512 MB              | 1 GB                |
+| Pro     | $5/mo or $50/yr   | 10            | 1.0 CPU          | 1 GB                | 20 GB               |
 
-The Starter plan includes a 7-day free trial period. After the trial ends, users are billed according to their selected billing cycle (monthly or yearly).
+The Starter plan includes a 7-day free trial period. After the trial ends, users are billed according to their selected billing cycle (monthly or yearly). If payment fails, instances will be marked as expired and scheduled for deletion.
 
 ## Data Security Considerations
 

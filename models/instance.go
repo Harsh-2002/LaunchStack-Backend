@@ -19,11 +19,12 @@ const (
 type InstanceStatus string
 
 const (
-	StatusRunning InstanceStatus = "running"
-	StatusStopped InstanceStatus = "stopped"
-	StatusError   InstanceStatus = "error"
-	StatusPending InstanceStatus = "pending"
-	StatusDeleted InstanceStatus = "deleted"
+	StatusRunning  InstanceStatus = "running"
+	StatusStopped  InstanceStatus = "stopped"
+	StatusError    InstanceStatus = "error"
+	StatusPending  InstanceStatus = "pending"
+	StatusDeleted  InstanceStatus = "deleted"
+	InstanceStatusExpired InstanceStatus = "expired" // When payment fails and instance is pending deletion
 )
 
 // Instance represents a user's n8n instance

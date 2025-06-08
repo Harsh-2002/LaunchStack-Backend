@@ -25,6 +25,7 @@ type Config struct {
 		SecretKey        string
 		WebhookSecret    string
 		PublishableKey   string
+		Issuer           string
 	}
 	PayPal struct {
 		DisablePayments  bool
@@ -86,6 +87,7 @@ func NewConfig() (*Config, error) {
 	}
 	config.Clerk.WebhookSecret = getEnv("CLERK_WEBHOOK_SECRET", "")
 	config.Clerk.PublishableKey = getEnv("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "")
+	config.Clerk.Issuer = getEnv("CLERK_ISSUER", "glad-starling-70.clerk.accounts.dev")
 
 	// PayPal configuration
 	disablePayments := getEnv("DISABLE_PAYMENTS", "false")

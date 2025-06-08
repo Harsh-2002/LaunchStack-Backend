@@ -81,18 +81,8 @@ func initializeDatabase(cfg *config.Config, logger *logrus.Logger) error {
 	// Debug log the configuration
 	logger.Infof("DisablePayments: %v, Environment: %s", cfg.PayPal.DisablePayments, cfg.Server.Environment)
 	
-	// If in development mode with payments disabled, create the development user
-	if cfg.PayPal.DisablePayments && cfg.Server.Environment == "development" {
-		logger.Info("Development mode detected, creating development user...")
-		if err = db.CreateDevUser(); err != nil {
-			logger.Warnf("Failed to create development user: %v", err)
-			// Don't return error, just warn and continue
-		} else {
-			logger.Info("Development user created or verified successfully")
-		}
-	} else {
-		logger.Info("Not creating development user - either payments are enabled or not in development mode")
-	}
+	// Note: We're using real JWT authentication but still keeping payments disabled
+	logger.Info("JWT authentication enabled - development user bypass disabled")
 	
 	logger.Info("Database initialized successfully")
 	return nil
@@ -211,16 +201,22 @@ func main() {
 	logger.WithFields(logrus.Fields{
 		"environment":      cfg.Server.Environment,
 		"disable_payments": cfg.PayPal.DisablePayments,
-	}).Info("Server configuration for middleware")
+		"auth_enabled":     true,
+		"dev_user_bypass":  false,
+	}).Info("Server configuration - using real JWT authentication")
 	
 	// Debug middleware configuration
 	logger.WithFields(logrus.Fields{
 		"ContextMiddleware": true,
 		"CORSMiddleware":    true,
+		"AuthMiddleware":    true,
 		"ContainerManager":  containerManager != nil,
 	}).Info("Debug middleware configuration before registering routes")
 	
 	routes.RegisterAllRoutes(router, cfg, containerManager, logger)
+	
+	// Register Clerk webhook routes
+	routes.RegisterClerkWebhookRoutes(router, cfg, logger)
 	
 	// Register mock payment routes if in development mode with payments disabled
 	if cfg.PayPal.DisablePayments && cfg.Server.Environment == "development" {

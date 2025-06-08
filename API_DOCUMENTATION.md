@@ -1,7 +1,16 @@
 # LaunchStack Backend API Documentation
 
 ## Overview
-LaunchStack is a PaaS solution providing self-hosted n8n workflow automation instances with Docker-based architecture. The platform supports multiple subscription tiers: Free, Basic, Pro, and Enterprise, each with different resource allocations.
+LaunchStack is a PaaS solution providing self-hosted n8n workflow automation instances with Docker-based architecture. The platform supports two subscription tiers: Starter (with 7-day free trial) and Pro, each with different resource allocations.
+
+### Subscription Tiers and Resource Limits
+
+| Plan    | Price             | Instances | CPU per Instance | Memory per Instance | Storage per Instance |
+|---------|-------------------|-----------|------------------|---------------------|---------------------|
+| Starter | $2/mo or $20/yr   | 1         | 0.5 CPU          | 512 MB              | 1 GB                |
+| Pro     | $5/mo or $50/yr   | 10        | 1.0 CPU          | 1 GB                | 20 GB               |
+
+The Starter plan includes a 7-day free trial period. After the trial ends, users are billed according to their selected billing cycle (monthly or yearly). If payment fails, instances will be marked as expired and scheduled for deletion.
 
 ## Base URL
 All API endpoints use the following base URL:
@@ -82,8 +91,8 @@ GET /api/v1/users/me
   },
   "resource_limits": {
     "max_instances": 10,
-    "cpu_limit": 2.0,
-    "memory_limit": 2048,
+    "cpu_limit": 1.0,
+    "memory_limit": 1024,
     "storage_limit": 20
   }
 }
@@ -132,8 +141,8 @@ GET /api/v1/instances
     "description": "Production automation workflows",
     "status": "running",
     "url": "prod-workflows-abc123.launchstack.io",
-    "cpu_limit": 2.0,
-    "memory_limit": 2048,
+    "cpu_limit": 1.0,
+    "memory_limit": 1024,
     "storage_limit": 20,
     "created_at": "2024-01-01T00:00:00Z",
     "updated_at": "2024-01-01T12:00:00Z"
@@ -174,8 +183,8 @@ POST /api/v1/instances
   "description": "Automation workflows for marketing team",
   "status": "running",
   "url": "marketing-workflows-ghi789.launchstack.io",
-  "cpu_limit": 2.0,
-  "memory_limit": 2048,
+  "cpu_limit": 1.0,
+  "memory_limit": 1024,
   "storage_limit": 20,
   "created_at": "2024-04-20T00:00:00Z",
   "updated_at": "2024-04-20T00:00:00Z"
@@ -195,8 +204,8 @@ GET /api/v1/instances/:id
   "description": "Production automation workflows",
   "status": "running",
   "url": "prod-workflows-abc123.launchstack.io",
-  "cpu_limit": 2.0,
-  "memory_limit": 2048,
+  "cpu_limit": 1.0,
+  "memory_limit": 1024,
   "storage_limit": 20,
   "created_at": "2024-01-01T00:00:00Z",
   "updated_at": "2024-01-01T12:00:00Z"

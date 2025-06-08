@@ -11,11 +11,9 @@ import (
 type SubscriptionPlan string
 
 const (
-	PlanFree      SubscriptionPlan = "free"
-	PlanBasic     SubscriptionPlan = "basic"
-	PlanPro       SubscriptionPlan = "pro"
-	PlanEnterprise SubscriptionPlan = "enterprise"
-	PlanStarter   SubscriptionPlan = "starter"
+	PlanFree     SubscriptionPlan = "free"
+	PlanStarter  SubscriptionPlan = "starter" // Same as free but with trial
+	PlanPro      SubscriptionPlan = "pro"
 )
 
 // SubscriptionStatus defines the user's subscription status
@@ -67,26 +65,16 @@ func (u *User) GetPlanResourceLimits() map[string]interface{} {
 	limits := make(map[string]interface{})
 	
 	switch u.Plan {
-	case PlanFree:
+	case PlanFree, PlanStarter:
 		limits["max_instances"] = 1
 		limits["cpu_limit"] = 0.5
 		limits["memory_limit"] = 512 // MB
 		limits["storage_limit"] = 1  // GB
-	case PlanBasic:
-		limits["max_instances"] = 3
-		limits["cpu_limit"] = 1.0
-		limits["memory_limit"] = 1024 // MB
-		limits["storage_limit"] = 5   // GB
 	case PlanPro:
 		limits["max_instances"] = 10
-		limits["cpu_limit"] = 2.0
-		limits["memory_limit"] = 2048 // MB
+		limits["cpu_limit"] = 1.0
+		limits["memory_limit"] = 1024 // MB
 		limits["storage_limit"] = 20  // GB
-	case PlanEnterprise:
-		limits["max_instances"] = 25
-		limits["cpu_limit"] = 4.0
-		limits["memory_limit"] = 4096 // MB
-		limits["storage_limit"] = 50  // GB
 	default:
 		// Default to free plan limits
 		limits["max_instances"] = 1
@@ -106,62 +94,48 @@ func (u *User) GetInstancesLimit() int {
 	}
 
 	switch u.Plan {
-	case "free":
+	case PlanFree, PlanStarter:
 		return 1
-	case "pro":
-		return 3
-	case "business":
+	case PlanPro:
 		return 10
 	default:
-		return 0
+		return 1 // Default to free plan
 	}
 }
 
 // GetCPULimit returns the CPU limit per instance based on subscription plan
 func (u *User) GetCPULimit() float64 {
 	switch u.Plan {
-	case PlanFree:
+	case PlanFree, PlanStarter:
 		return 0.5
-	case PlanBasic:
-		return 1.0
 	case PlanPro:
-		return 2.0
-	case PlanEnterprise:
-		return 4.0
+		return 1.0
 	default:
-		return 0.0
+		return 0.5 // Default to free plan
 	}
 }
 
 // GetMemoryLimit returns the memory limit per instance in MB based on subscription plan
 func (u *User) GetMemoryLimit() int {
 	switch u.Plan {
-	case PlanFree:
+	case PlanFree, PlanStarter:
 		return 512
-	case PlanBasic:
-		return 1024
 	case PlanPro:
-		return 2048
-	case PlanEnterprise:
-		return 4096
+		return 1024
 	default:
-		return 0
+		return 512 // Default to free plan
 	}
 }
 
 // GetStorageLimit returns the storage limit per instance in GB based on subscription plan
 func (u *User) GetStorageLimit() int {
 	switch u.Plan {
-	case PlanFree:
+	case PlanFree, PlanStarter:
 		return 1
-	case PlanBasic:
-		return 5
 	case PlanPro:
 		return 20
-	case PlanEnterprise:
-		return 50
 	default:
-		return 0
+		return 1 // Default to free plan
 	}
 }
 

@@ -302,6 +302,6 @@ func main() {
 	} else {
 		fmt.Println("Warning: DNS record could not be deleted. Manual cleanup may be required.")
 		fmt.Printf("Please visit %s://%s and delete the record manually.\n", protocol, host)
+		}
 	}
-}
 

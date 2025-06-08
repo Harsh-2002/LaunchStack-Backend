@@ -75,7 +75,7 @@ func MockGetPayments(c *gin.Context) {
 		{
 			"id":          uuid.New().String(),
 			"user_id":     userID.(uuid.UUID).String(),
-			"amount":      2900,
+			"amount":      500, // $5.00 for Pro plan
 			"currency":    "usd",
 			"status":      PaymentStatusCompleted,
 			"description": "Subscription to pro plan",
@@ -126,7 +126,7 @@ func MockGetSubscriptions(c *gin.Context) {
 		"start_date":  time.Now().Add(-30 * 24 * time.Hour).Format(time.RFC3339),
 		"end_date":    time.Now().Add(335 * 24 * time.Hour).Format(time.RFC3339),
 		"auto_renew":  true,
-		"amount":      2900,
+		"amount":      500, // $5.00 per month
 		"currency":    "usd",
 		"description": "Pro Plan Subscription",
 	}

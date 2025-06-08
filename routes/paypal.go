@@ -120,7 +120,7 @@ func CreateCheckoutSession(c *gin.Context) {
 	}
 
 	// Validate plan
-	if req.Plan != string(models.PlanPro) && req.Plan != string(models.PlanBasic) {
+	if req.Plan != string(models.PlanPro) && req.Plan != string(models.PlanStarter) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid plan selected"})
 		return
 	}
@@ -146,9 +146,10 @@ func CreateCheckoutSession(c *gin.Context) {
 	// Determine amount based on plan
 	var amount float64
 	if req.Plan == string(models.PlanPro) {
-		amount = 29.00
+		amount = 5.00 // $5 per month for Pro plan
 	} else {
-		amount = 9.00
+		// Starter plan
+		amount = 2.00 // $2 per month for Starter plan
 	}
 
 	// Create order payload
